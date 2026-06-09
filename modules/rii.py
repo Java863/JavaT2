@@ -1,22 +1,35 @@
 import pandas as pd
 
-def calcular_rii(df: pd.DataFrame, factor_col: str, respuesta_cols: list, escala_maxima: int = 5) -> pd.DataFrame:
+
+def convertir_likert(valor: str) -> int:
+    escala = {
+        "Muy baja": 1,
+        "Baja": 2,
+        "Media": 3,
+        "Alta": 4,
+        "Muy alta": 5,
+    }
+    return escala[valor]
+
+
+def calcular_rii_desde_respuestas(df: pd.DataFrame, escala_maxima: int = 5) -> pd.DataFrame:
     """
-    Calcula el Relative Importance Index (RII).
+    Calcula RII desde respuestas en formato largo.
 
-    Parámetros:
-    df: DataFrame con factores y respuestas.
-    factor_col: nombre de la columna donde están los factores/riesgos.
-    respuesta_cols: columnas con respuestas Likert de expertos.
-    escala_maxima: valor máximo de la escala Likert.
-
-    Retorna:
-    DataFrame ordenado de mayor a menor RII.
+    Formato esperado:
+    Experto | Codigo | Riesgo | Calificacion | Valor
     """
-    resultado = df.copy()
-    n_expertos = len(respuesta_cols)
+    resumen = (
+        df.groupby(["Codigo", "Riesgo"], as_index=False)
+        .agg(
+            Suma_respuestas=("Valor", "sum"),
+            N_expertos=("Experto", "nunique"),
+            Promedio=("Valor", "mean"),
+        )
+    )
 
-    resultado["Suma_respuestas"] = resultado[respuesta_cols].sum(axis=1)
-    resultado["RII"] = resultado["Suma_respuestas"] / (escala_maxima * n_expertos)
+    resumen["RII"] = resumen["Suma_respuestas"] / (
+        escala_maxima * resumen["N_expertos"]
+    )
 
-    return resultado.sort_values("RII", ascending=False)
+    return resumen.sort_values("RII", ascending=False)
