@@ -13,23 +13,17 @@ def convertir_likert(valor: str) -> int:
 
 
 def calcular_rii_desde_respuestas(df: pd.DataFrame, escala_maxima: int = 5) -> pd.DataFrame:
-    """
-    Calcula RII desde respuestas en formato largo.
-
-    Formato esperado:
-    Experto | Codigo | Riesgo | Calificacion | Valor
-    """
     resumen = (
-        df.groupby(["Codigo", "Riesgo"], as_index=False)
+        df.groupby(["codigo", "riesgo"], as_index=False)
         .agg(
-            Suma_respuestas=("Valor", "sum"),
-            N_expertos=("Experto", "nunique"),
-            Promedio=("Valor", "mean"),
+            suma_respuestas=("valor", "sum"),
+            n_expertos=("experto", "nunique"),
+            promedio=("valor", "mean"),
         )
     )
 
-    resumen["RII"] = resumen["Suma_respuestas"] / (
-        escala_maxima * resumen["N_expertos"]
+    resumen["RII"] = resumen["suma_respuestas"] / (
+        escala_maxima * resumen["n_expertos"]
     )
 
     return resumen.sort_values("RII", ascending=False)
