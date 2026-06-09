@@ -32,19 +32,10 @@ if menu == "1. Encuesta Likert a expertos":
         "para generar riesgos críticos e impacto presupuestal en un proyecto de diseño de cierre de mina."
     )
 
-    archivo_riesgos = st.file_uploader(
-        "Cargue la lista de riesgos filtrados",
-        type=["csv", "xlsx"]
-    )
+    try:
+        riesgos = pd.read_csv("data/riesgos_filtrados.csv")
 
-    if archivo_riesgos is not None:
-
-        if archivo_riesgos.name.endswith(".csv"):
-            riesgos = pd.read_csv(archivo_riesgos)
-        else:
-            riesgos = pd.read_excel(archivo_riesgos)
-
-        st.success("Lista de riesgos cargada correctamente.")
+        st.success("Lista de riesgos filtrados cargada automáticamente.")
         st.dataframe(riesgos, use_container_width=True)
 
         experto = st.text_input("Nombre o código del experto")
@@ -67,7 +58,7 @@ if menu == "1. Encuesta Likert a expertos":
                 st.write(descripcion)
 
                 calificacion = st.selectbox(
-                    f"¿Qué tan importante considera este riesgo para generar criticidad e impacto presupuestal?",
+                    "¿Qué tan importante considera este riesgo para generar criticidad e impacto presupuestal?",
                     escala,
                     key=f"{experto}_{codigo}"
                 )
@@ -97,6 +88,11 @@ if menu == "1. Encuesta Likert a expertos":
         else:
             st.warning("Ingrese el nombre o código del experto para iniciar la encuesta.")
 
+    except FileNotFoundError:
+        st.error(
+            "No se encontró el archivo data/riesgos_filtrados.csv. "
+            "Verifica que exista dentro del repositorio de GitHub."
+        )
 # ---------------------------------------------------------
 # ETAPA 2: CÁLCULO RII
 # ---------------------------------------------------------
