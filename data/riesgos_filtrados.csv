@@ -1,6 +1,6 @@
 Codigo,Riesgo,Descripcion
-R1,Información base insuficiente,Falta de información técnica suficiente para desarrollar el diseño de cierre.
-R2,Incertidumbre en metrados,Posibilidad de que las cantidades de obra del cierre estén subestimadas.
-R3,Observaciones del cliente o autoridad,Riesgo de retrabajo por observaciones durante la revisión del diseño.
-R4,Falta de integración interdisciplinaria,Inconsistencias entre disciplinas técnicas, ambientales, sociales y económicas.
-R5,Costos post-cierre subestimados,Subestimación de monitoreo, mantenimiento o gestión posterior al cierre.
+R1,Información base insuficiente,"Falta de información técnica suficiente para desarrollar el diseño de cierre."
+R2,Incertidumbre en metrados,"Posibilidad de que las cantidades de obra del cierre estén subestimadas."
+R3,Observaciones del cliente o autoridad,"Riesgo de retrabajo por observaciones durante la revisión del diseño."
+R4,Falta de integración interdisciplinaria,"Inconsistencias entre disciplinas técnicas, ambientales, sociales y económicas."
+R5,Costos post-cierre subestimados,"Subestimación de monitoreo, mantenimiento o gestión posterior al cierre."
