@@ -29,72 +29,50 @@ if menu == "1. Encuesta Likert a expertos":
 
     st.header("1. Encuesta Likert para evaluación de riesgos")
 
-    st.write(
-        "En esta sección, cada experto califica los riesgos filtrados según su importancia "
-        "para generar riesgos críticos e impacto presupuestal en un proyecto de diseño de cierre de mina."
-    )
+    riesgos = pd.read_csv("data/riesgos_filtrados.csv")
 
-    try:
-        riesgos = pd.read_csv("data/riesgos_filtrados.csv")
+    st.success("Lista de riesgos filtrados cargada automáticamente.")
+    st.dataframe(riesgos, use_container_width=True)
 
-        st.success("Lista de riesgos filtrados cargada automáticamente.")
-        st.dataframe(riesgos, use_container_width=True)
+    experto = st.text_input("Nombre o código del experto")
 
-        experto = st.text_input("Nombre o código del experto")
+    escala = ["Muy baja", "Baja", "Media", "Alta", "Muy alta"]
 
-        st.subheader("Calificación de riesgos")
+    respuestas = []
 
-        escala = ["Muy baja", "Baja", "Media", "Alta", "Muy alta"]
+    if experto:
+        for _, row in riesgos.iterrows():
+            codigo = row["Codigo"]
+            riesgo = row["Riesgo"]
+            descripcion = row.get("Descripcion", "")
 
-        respuestas = []
+            st.markdown(f"### {codigo}. {riesgo}")
+            st.write(descripcion)
 
-        if experto:
-
-            for _, row in riesgos.iterrows():
-
-                codigo = row["Codigo"]
-                riesgo = row["Riesgo"]
-                descripcion = row.get("Descripcion", "")
-
-                st.markdown(f"### {codigo}. {riesgo}")
-                st.write(descripcion)
-
-                calificacion = st.selectbox(
-                    "¿Qué tan importante considera este riesgo para generar criticidad e impacto presupuestal?",
-                    escala,
-                    key=f"{experto}_{codigo}"
-                )
-
-                respuestas.append({
-                    "Experto": experto,
-                    "Codigo": codigo,
-                    "Riesgo": riesgo,
-                    "Calificacion": calificacion,
-                    "Valor": convertir_likert(calificacion)
-                })
-
-            df_respuestas = pd.DataFrame(respuestas)
-
-            st.subheader("Resumen de respuestas del experto")
-            st.dataframe(df_respuestas, use_container_width=True)
-
-            csv = df_respuestas.to_csv(index=False).encode("utf-8")
-
-            st.download_button(
-                label="Descargar respuestas del experto en CSV",
-                data=csv,
-                file_name=f"respuestas_{experto}.csv",
-                mime="text/csv"
+            calificacion = st.selectbox(
+                "Seleccione su calificación:",
+                escala,
+                key=f"{experto}_{codigo}"
             )
 
-        else:
-            st.warning("Ingrese el nombre o código del experto para iniciar la encuesta.")
+            respuestas.append({
+                "experto": experto,
+                "codigo": codigo,
+                "riesgo": riesgo,
+                "calificacion": calificacion,
+                "valor": convertir_likert(calificacion)
+            })
 
-    except FileNotFoundError:
-        st.error(
-            "No se encontró el archivo data/riesgos_filtrados.csv. "
-            "Verifica que exista dentro del repositorio de GitHub."
-        )
+        df_respuestas = pd.DataFrame(respuestas)
+
+        st.subheader("Resumen de respuestas")
+        st.dataframe(df_respuestas, use_container_width=True)
+
+        if st.button("Enviar respuestas"):
+            guardar_respuestas(df_respuestas)
+            st.success("Respuestas guardadas correctamente.")
+    else:
+        st.warning("Ingrese el nombre o código del experto para iniciar.")
 # ---------------------------------------------------------
 # ETAPA 2: CÁLCULO RII
 # ---------------------------------------------------------
@@ -103,45 +81,30 @@ elif menu == "2. Cálculo RII":
 
     st.header("2. Cálculo del Índice de Importancia Relativa")
 
-    st.write(
-        "Cargue uno o varios archivos CSV descargados desde la encuesta. "
-        "La aplicación consolidará las respuestas y calculará el RII de cada riesgo."
-    )
+    if st.button("Cargar respuestas guardadas"):
+        respuestas_totales = leer_respuestas()
 
-    archivos_respuestas = st.file_uploader(
-        "Cargue las respuestas de los expertos",
-        type=["csv"],
-        accept_multiple_files=True
-    )
+        if respuestas_totales.empty:
+            st.warning("Todavía no hay respuestas registradas.")
+        else:
+            st.subheader("Respuestas registradas")
+            st.dataframe(respuestas_totales, use_container_width=True)
 
-    if archivos_respuestas:
+            resultado_rii = calcular_rii_desde_respuestas(respuestas_totales)
 
-        lista_df = []
+            st.subheader("Ranking de riesgos según RII")
+            st.dataframe(resultado_rii, use_container_width=True)
 
-        for archivo in archivos_respuestas:
-            df = pd.read_csv(archivo)
-            lista_df.append(df)
+            st.session_state["resultado_rii"] = resultado_rii
 
-        respuestas_totales = pd.concat(lista_df, ignore_index=True)
+            csv = resultado_rii.to_csv(index=False).encode("utf-8")
 
-        st.subheader("Respuestas consolidadas")
-        st.dataframe(respuestas_totales, use_container_width=True)
-
-        resultado_rii = calcular_rii_desde_respuestas(respuestas_totales)
-
-        st.subheader("Ranking de riesgos según RII")
-        st.dataframe(resultado_rii, use_container_width=True)
-
-        st.session_state["resultado_rii"] = resultado_rii
-
-        csv = resultado_rii.to_csv(index=False).encode("utf-8")
-
-        st.download_button(
-            label="Descargar ranking RII",
-            data=csv,
-            file_name="ranking_rii.csv",
-            mime="text/csv"
-        )
+            st.download_button(
+                label="Descargar ranking RII",
+                data=csv,
+                file_name="ranking_rii.csv",
+                mime="text/csv"
+            )
 
 # ---------------------------------------------------------
 # ETAPA 3: SELECCIÓN DE RIESGOS PRINCIPALES
