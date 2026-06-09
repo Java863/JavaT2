@@ -13,7 +13,8 @@ def conectar_supabase():
 def guardar_respuestas(df_respuestas: pd.DataFrame):
     supabase = conectar_supabase()
 
-    registros = df_respuestas.to_dict(orient="records")
+    columnas = ["experto", "codigo", "riesgo", "calificacion", "valor"]
+    registros = df_respuestas[columnas].to_dict(orient="records")
 
     if registros:
         supabase.table("respuestas_rii").insert(registros).execute()
@@ -24,11 +25,9 @@ def leer_respuestas() -> pd.DataFrame:
 
     response = supabase.table("respuestas_rii").select("*").execute()
 
-    data = response.data
-
-    if not data:
+    if not response.data:
         return pd.DataFrame(
             columns=["experto", "codigo", "riesgo", "calificacion", "valor"]
         )
 
-    return pd.DataFrame(data)
+    return pd.DataFrame(response.data)
