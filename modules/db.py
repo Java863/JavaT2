@@ -31,3 +31,48 @@ def leer_respuestas() -> pd.DataFrame:
         )
 
     return pd.DataFrame(response.data)
+
+def guardar_respuestas_fahp(df_respuestas: pd.DataFrame):
+    supabase = conectar_supabase()
+
+    columnas = [
+        "experto",
+        "criterio_i",
+        "criterio_j",
+        "criterio_i_nombre",
+        "criterio_j_nombre",
+        "criterio_preferido",
+        "intensidad",
+        "l",
+        "m",
+        "u",
+    ]
+
+    registros = df_respuestas[columnas].to_dict(orient="records")
+
+    if registros:
+        supabase.table("respuestas_fahp").insert(registros).execute()
+
+
+def leer_respuestas_fahp() -> pd.DataFrame:
+    supabase = conectar_supabase()
+
+    response = supabase.table("respuestas_fahp").select("*").execute()
+
+    if not response.data:
+        return pd.DataFrame(
+            columns=[
+                "experto",
+                "criterio_i",
+                "criterio_j",
+                "criterio_i_nombre",
+                "criterio_j_nombre",
+                "criterio_preferido",
+                "intensidad",
+                "l",
+                "m",
+                "u",
+            ]
+        )
+
+    return pd.DataFrame(response.data)
