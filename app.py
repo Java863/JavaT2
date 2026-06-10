@@ -2,7 +2,6 @@ from modules.db import guardar_respuestas, leer_respuestas
 from modules.rii import convertir_likert, calcular_rii_desde_respuestas
 import streamlit as st
 import pandas as pd
-from modules.rii import convertir_likert, calcular_rii_desde_respuestas
 
 st.set_page_config(
     page_title="Modelo de riesgos de cierre de mina",
