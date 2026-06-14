@@ -2,6 +2,17 @@ from modules.rii import convertir_likert, calcular_rii_desde_respuestas
 import streamlit as st
 import pandas as pd
 
+from modules.evaluacion import (
+    obtener_tfn_calificacion,
+    defuzzificar_tfn,
+    calcular_criticidad,
+)
+
+from modules.db import (
+    guardar_respuestas_evaluacion,
+    leer_respuestas_evaluacion,
+)
+
 from modules.fahp import (
     generar_pares_criterios,
     obtener_tfn,
