@@ -42,7 +42,9 @@ menu = st.sidebar.radio(
         "2. Cálculo RII",
         "3. Selección de riesgos principales",
         "4. Encuesta FAHP de criterios",
-        "5. Matriz difusa FAHP"
+        "5. Matriz difusa FAHP",
+        "6. Evaluación matricial riesgo-criterio",
+        "7. Ranking final de riesgos críticos",
     ]
 )
 
@@ -355,3 +357,162 @@ elif menu == "5. Matriz difusa FAHP":
             file_name=f"pesos_fahp_{experto_seleccionado}.csv",
             mime="text/csv"
         )
+
+# ---------------------------------------------------------
+# ETAPA 6: SELECCIÓN DE RIESGOS PRINCIPALES
+# ---------------------------------------------------------
+
+elif menu == "6. Evaluación matricial riesgo-criterio":
+
+    st.header("6. Evaluación matricial de riesgos frente a criterios")
+
+    st.write(
+        "En esta sección, el experto evalúa cada riesgo seleccionado frente a cada criterio "
+        "mediante una escala lingüística difusa: Muy bajo, Bajo, Medio, Alto y Muy alto."
+    )
+
+    experto = st.text_input("Nombre o código del experto evaluador")
+
+    # Riesgos seleccionados
+    st.subheader("Cargar riesgos seleccionados")
+
+    archivo_riesgos = st.file_uploader(
+        "Cargue el archivo de riesgos seleccionados por RII",
+        type=["csv"],
+        key="riesgos_seleccionados_eval"
+    )
+
+    # Pesos de criterios
+    st.subheader("Cargar pesos normalizados de criterios")
+
+    archivo_pesos = st.file_uploader(
+        "Cargue el archivo de pesos FAHP",
+        type=["csv"],
+        key="pesos_fahp_eval"
+    )
+
+    if archivo_riesgos is not None and archivo_pesos is not None:
+
+        riesgos = pd.read_csv(archivo_riesgos)
+        pesos = pd.read_csv(archivo_pesos)
+
+        st.subheader("Riesgos seleccionados")
+        st.dataframe(riesgos, width="stretch")
+
+        st.subheader("Pesos de criterios")
+        st.dataframe(pesos, width="stretch")
+
+        escala = ["Muy bajo", "Bajo", "Medio", "Alto", "Muy alto"]
+
+        respuestas = []
+
+        if experto:
+
+            st.subheader("Matriz de evaluación")
+
+            for _, riesgo_row in riesgos.iterrows():
+
+                codigo_riesgo = riesgo_row.get("codigo", riesgo_row.get("Codigo", ""))
+                riesgo_nombre = riesgo_row.get("riesgo", riesgo_row.get("Riesgo", ""))
+
+                st.markdown(f"### {codigo_riesgo}. {riesgo_nombre}")
+
+                columnas = st.columns(len(pesos))
+
+                for idx, criterio_row in pesos.iterrows():
+
+                    codigo_criterio = criterio_row.get("Codigo", criterio_row.get("codigo_criterio", ""))
+                    criterio_nombre = criterio_row.get("Criterio", criterio_row.get("criterio", ""))
+
+                    with columnas[idx]:
+
+                        calificacion = st.selectbox(
+                            f"{codigo_criterio}",
+                            escala,
+                            key=f"eval_{experto}_{codigo_riesgo}_{codigo_criterio}"
+                        )
+
+                        st.caption(criterio_nombre)
+
+                        l, m, u = obtener_tfn_calificacion(calificacion)
+                        defuzzificado = defuzzificar_tfn(l, m, u)
+
+                        respuestas.append({
+                            "experto": experto,
+                            "codigo_riesgo": codigo_riesgo,
+                            "riesgo": riesgo_nombre,
+                            "codigo_criterio": codigo_criterio,
+                            "criterio": criterio_nombre,
+                            "calificacion": calificacion,
+                            "l": l,
+                            "m": m,
+                            "u": u,
+                            "defuzzificado": defuzzificado,
+                        })
+
+            df_respuestas_eval = pd.DataFrame(respuestas)
+
+            st.subheader("Resumen de evaluación")
+            st.dataframe(df_respuestas_eval, width="stretch")
+
+            if st.button("Enviar evaluación matricial"):
+                guardar_respuestas_evaluacion(df_respuestas_eval)
+                st.success("Evaluación matricial guardada correctamente.")
+
+        else:
+            st.warning("Ingrese el nombre o código del experto para iniciar la evaluación.")
+
+    else:
+        st.info("Debe cargar el archivo de riesgos seleccionados y el archivo de pesos FAHP.")
+
+# ---------------------------------------------------------
+# ETAPA 7: SELECCIÓN DE RIESGOS PRINCIPALES
+# ---------------------------------------------------------
+
+elif menu == "7. Ranking final de riesgos críticos":
+
+    st.header("7. Ranking final de riesgos críticos")
+
+    respuestas_eval = leer_respuestas_evaluacion()
+
+    if respuestas_eval.empty:
+        st.warning("Todavía no hay evaluaciones matriciales registradas.")
+    else:
+        st.subheader("Evaluaciones registradas")
+        st.dataframe(respuestas_eval, width="stretch")
+
+        st.subheader("Cargar pesos normalizados FAHP")
+
+        archivo_pesos = st.file_uploader(
+            "Cargue el archivo de pesos FAHP",
+            type=["csv"],
+            key="pesos_fahp_ranking"
+        )
+
+        if archivo_pesos is not None:
+
+            pesos = pd.read_csv(archivo_pesos)
+
+            ranking = calcular_criticidad(
+                respuestas_evaluacion=respuestas_eval,
+                pesos_criterios=pesos
+            )
+
+            st.subheader("Ranking de riesgos críticos")
+            st.dataframe(ranking, width="stretch")
+
+            st.bar_chart(
+                ranking.set_index("riesgo")["puntaje_criticidad"]
+            )
+
+            csv = ranking.to_csv(index=False).encode("utf-8")
+
+            st.download_button(
+                label="Descargar ranking final",
+                data=csv,
+                file_name="ranking_final_riesgos_criticos.csv",
+                mime="text/csv"
+            )
+
+        else:
+            st.info("Cargue el archivo de pesos FAHP para calcular el ranking final.")
