@@ -25,36 +25,47 @@ def calcular_criticidad(
     """
     Calcula el puntaje de criticidad de cada riesgo.
 
-    respuestas_evaluacion debe tener:
-    codigo_riesgo, riesgo, codigo_criterio, defuzzificado
-
-    pesos_criterios debe tener:
-    Codigo, Peso_normalizado
+    Si hay varios expertos, primero promedia la calificación defuzzificada
+    por cada combinación riesgo-criterio.
     """
 
     df = respuestas_evaluacion.copy()
     pesos = pesos_criterios.copy()
+
+    # Promedio por riesgo y criterio
+    df_prom = (
+        df.groupby(
+            ["codigo_riesgo", "riesgo", "codigo_criterio", "criterio"],
+            as_index=False
+        )
+        .agg(
+            defuzzificado_promedio=("defuzzificado", "mean"),
+            n_respuestas=("experto", "nunique")
+        )
+    )
 
     pesos = pesos.rename(columns={
         "Codigo": "codigo_criterio",
         "Peso_normalizado": "peso_criterio"
     })
 
-    df = df.merge(
+    df_prom = df_prom.merge(
         pesos[["codigo_criterio", "peso_criterio"]],
         on="codigo_criterio",
         how="left"
     )
 
-    df["aporte"] = df["defuzzificado"] * df["peso_criterio"]
+    df_prom["aporte"] = df_prom["defuzzificado_promedio"] * df_prom["peso_criterio"]
 
     ranking = (
-        df.groupby(["codigo_riesgo", "riesgo"], as_index=False)
+        df_prom.groupby(["codigo_riesgo", "riesgo"], as_index=False)
         .agg(
             puntaje_criticidad=("aporte", "sum")
         )
     )
 
     ranking = ranking.sort_values("puntaje_criticidad", ascending=False)
+
+    return ranking
 
     return ranking
