@@ -8,11 +8,6 @@ from modules.evaluacion import (
     calcular_criticidad,
 )
 
-from modules.db import (
-    guardar_respuestas_evaluacion,
-    leer_respuestas_evaluacion,
-)
-
 from modules.fahp import (
     generar_pares_criterios,
     obtener_tfn,
@@ -27,6 +22,8 @@ from modules.db import (
     leer_respuestas,
     guardar_respuestas_fahp,
     leer_respuestas_fahp,
+    guardar_respuestas_evaluacion,
+    leer_respuestas_evaluacion,
 )
 
 
