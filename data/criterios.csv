@@ -1,8 +1,6 @@
-Codigo,Criterio,Que_mide,Pregunta_guia
-C1,Probabilidad de ocurrencia,Qué tan probable es que el riesgo ocurra durante el diseño de cierre de mina.,¿Qué tan probable es que este riesgo se materialice?
-C2,Impacto presupuestal,Qué tanto puede afectar el presupuesto del proyecto.,¿Qué tan significativo sería el impacto económico si ocurre?
-C3,Impacto en el alcance del diseño,Qué tanto puede alterar ampliar o redefinir entregables del diseño.,¿Este riesgo puede generar actividades análisis o entregables adicionales?
-C4,Urgencia de atención,Qué tan pronto debe gestionarse para evitar consecuencias mayores.,¿Este riesgo debe atenderse de inmediato o puede esperar?
-C5,Nivel de incertidumbre,Qué tanta falta de información o variabilidad existe alrededor del riesgo.,¿Qué tan incierta es la información disponible sobre este riesgo?
-C6,Capacidad de control,Qué tan manejable es el riesgo por el equipo del proyecto.,¿Qué tan fácil o difícil es controlar este riesgo con acciones del equipo?
-C7,Impacto en la calidad técnica,Qué tanto puede afectar la confiabilidad consistencia o completitud del diseño.,¿Este riesgo puede afectar la calidad técnica del entregable?
+Codigo,Criterio,Descripcion
+"C1","Probabilidad de ocurrencia","Grado en que el factor de riesgo puede presentarse durante el desarrollo del proyecto de diseño de cierre."
+"C2","Impacto en costo o consumo de horas-hombre","Nivel en que el factor puede incrementar las horas-hombre, costos internos, recursos adicionales o desviaciones respecto a lo estimado."
+"C3","Impacto técnico en el diseño","Grado en que el factor puede afectar el alcance, consistencia, calidad técnica o completitud de los entregables de diseño."
+"C4","Urgencia de atención","Nivel de rapidez con que el factor debe ser atendido para evitar retrabajos, retrasos o pérdida de control del proyecto."
+"C5","Capacidad de control o mitigabilidad","Grado en que el equipo del proyecto puede prevenir, reducir o gestionar el efecto del factor mediante acciones de control."
