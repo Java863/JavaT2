@@ -1,6 +1,6 @@
-Codigo,Criterio,Descripcion
-"C1","Probabilidad de ocurrencia","Grado en que el factor de riesgo puede presentarse durante el desarrollo del proyecto de diseño de cierre."
-"C2","Impacto en costo o consumo de horas-hombre","Nivel en que el factor puede incrementar las horas-hombre, costos internos, recursos adicionales o desviaciones respecto a lo estimado."
-"C3","Impacto técnico en el diseño","Grado en que el factor puede afectar el alcance, consistencia, calidad técnica o completitud de los entregables de diseño."
-"C4","Urgencia de atención","Nivel de rapidez con que el factor debe ser atendido para evitar retrabajos, retrasos o pérdida de control del proyecto."
-"C5","Capacidad de control o mitigabilidad","Grado en que el equipo del proyecto puede prevenir, reducir o gestionar el efecto del factor mediante acciones de control."
+Codigo,Criterio,Que_mide,Descripcion
+"C1","Probabilidad de ocurrencia","Frecuencia o posibilidad de aparición del riesgo","Grado en que el factor de riesgo puede presentarse durante el desarrollo del proyecto de diseño de cierre."
+"C2","Impacto en costo o consumo de horas-hombre","Afectación económica interna del proyecto","Nivel en que el factor puede incrementar las horas-hombre, costos internos, recursos adicionales o desviaciones respecto a lo estimado."
+"C3","Impacto técnico en el diseño","Afectación al alcance, consistencia y calidad del diseño","Grado en que el factor puede afectar el alcance, consistencia, calidad técnica o completitud de los entregables de diseño."
+"C4","Urgencia de atención","Necesidad de respuesta temprana","Nivel de rapidez con que el factor debe ser atendido para evitar retrabajos, retrasos o pérdida de control del proyecto."
+"C5","Capacidad de control o mitigabilidad","Facilidad o dificultad para gestionar el riesgo","Grado en que el equipo del proyecto puede prevenir, reducir o gestionar el efecto del factor mediante acciones de control."
