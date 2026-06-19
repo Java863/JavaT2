@@ -122,3 +122,25 @@ def leer_respuestas_evaluacion() -> pd.DataFrame:
         )
 
     return pd.DataFrame(response.data)
+
+def experto_tiene_respuestas(experto: str) -> dict:
+    supabase = conectar_supabase()
+
+    rii = supabase.table("respuestas_rii").select("id").eq("experto", experto).execute()
+    fahp = supabase.table("respuestas_fahp").select("id").eq("experto", experto).execute()
+    evaluacion = supabase.table("respuestas_evaluacion").select("id").eq("experto", experto).execute()
+
+    return {
+        "rii": len(rii.data) > 0,
+        "fahp": len(fahp.data) > 0,
+        "evaluacion": len(evaluacion.data) > 0,
+        "alguna": len(rii.data) > 0 or len(fahp.data) > 0 or len(evaluacion.data) > 0,
+    }
+
+
+def eliminar_respuestas_experto(experto: str):
+    supabase = conectar_supabase()
+
+    supabase.table("respuestas_rii").delete().eq("experto", experto).execute()
+    supabase.table("respuestas_fahp").delete().eq("experto", experto).execute()
+    supabase.table("respuestas_evaluacion").delete().eq("experto", experto).execute()
