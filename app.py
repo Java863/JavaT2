@@ -64,6 +64,7 @@ def mostrar_tabla_texto_completo(df):
         white-space: normal;
         word-wrap: break-word;
         overflow-wrap: break-word;
+        line-height: 1.45;
     }}
 
     table.tabla-texto-completo tr:nth-child(even) {{
@@ -72,6 +73,22 @@ def mostrar_tabla_texto_completo(df):
 
     table.tabla-texto-completo tr:nth-child(odd) {{
         background-color: #0f141c;
+    }}
+
+    /* Anchos por columna */
+    table.tabla-texto-completo th:nth-child(1),
+    table.tabla-texto-completo td:nth-child(1) {{
+        width: 8%;
+    }}
+
+    table.tabla-texto-completo th:nth-child(2),
+    table.tabla-texto-completo td:nth-child(2) {{
+        width: 32%;
+    }}
+
+    table.tabla-texto-completo th:nth-child(3),
+    table.tabla-texto-completo td:nth-child(3) {{
+        width: 60%;
     }}
     </style>
 
