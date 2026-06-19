@@ -15,6 +15,7 @@ from modules.fahp import (
     matriz_central_para_cr,
     calcular_pesos_crisp,
     calcular_cr,
+    detectar_inconsistencias_fuertes,
 )
 
 from modules.db import (
@@ -75,160 +76,120 @@ st.set_page_config(
 st.title("Modelo multicriterio para riesgos críticos")
 st.subheader("Proyecto de diseño de cierre de mina")
 
-menu = st.sidebar.radio(
-    "Seleccione una etapa",
-    [
-        "1. Encuesta Likert a expertos",
-        "2. Cálculo RII",
-        "3. Selección de riesgos principales",
-        "4. Encuesta FAHP de criterios",
-        "5. Matriz difusa FAHP",
-        "6. Evaluación matricial riesgo-criterio",
-        "7. Ranking final de riesgos críticos",
-    ]
-)
+st.markdown("""
+Esta plataforma permite registrar el juicio experto para la priorización de riesgos críticos
+en un proyecto de diseño de cierre de mina. El proceso se desarrolla de manera secuencial:
+primero se califican los riesgos mediante escala Likert, luego se comparan los criterios mediante
+FAHP y finalmente se evalúan los riesgos frente a los criterios ponderados.
+""")
+
+if "paso" not in st.session_state:
+    st.session_state["paso"] = 1
+
+if "experto" not in st.session_state:
+    st.session_state["experto"] = ""
+
+if not st.session_state["experto"]:
+
+    st.header("Identificación del experto")
+
+    experto_input = st.text_input(
+        "Ingrese su nombre o código de experto",
+        placeholder="Ejemplo: E01, Especialista Geotecnia, Experto 1"
+    )
+
+    if st.button("Iniciar evaluación"):
+        if experto_input.strip():
+            st.session_state["experto"] = experto_input.strip()
+            st.session_state["paso"] = 1
+            st.rerun()
+        else:
+            st.warning("Debe ingresar un nombre o código para continuar.")
+
+    st.stop()
+
+
+experto = st.session_state["experto"]
+paso = st.session_state["paso"]
+
+st.info(f"Experto actual: {experto}")
+
+progreso = paso / 3
+st.progress(progreso)
+
+st.write(f"Paso {paso} de 3")
 
 # ---------------------------------------------------------
 # ETAPA 1: ENCUESTA LIKERT
 # ---------------------------------------------------------
+if st.session_state["paso"] == 1:
 
-if menu == "1. Encuesta Likert a expertos":
+    st.header("Paso 1: Evaluación Likert de riesgos")
 
-    st.header("1. Encuesta Likert para evaluación de riesgos")
+    st.write(
+        "Califique cada riesgo según su importancia para generar criticidad e impacto presupuestal "
+        "en un proyecto de diseño de cierre de mina."
+    )
 
     riesgos = pd.read_csv("data/riesgos_filtrados.csv")
 
-    st.success("Lista de riesgos filtrados cargada automáticamente.")
-    st.dataframe(riesgos, use_container_width=True)
-
-    experto = st.text_input("Nombre o código del experto")
+    st.subheader("Riesgos a evaluar")
+    st.dataframe(riesgos, width="stretch")
 
     escala = ["Muy baja", "Baja", "Media", "Alta", "Muy alta"]
 
     respuestas = []
 
-    if experto:
-        for _, row in riesgos.iterrows():
-            codigo = row["Codigo"]
-            riesgo = row["Riesgo"]
-            descripcion = row.get("Descripcion", "")
+    for _, row in riesgos.iterrows():
 
-            st.markdown(f"### {codigo}. {riesgo}")
-            st.write(descripcion)
+        codigo = row["Codigo"]
+        riesgo = row["Riesgo"]
+        descripcion = row.get("Descripcion", "")
 
-            calificacion = st.selectbox(
-                "Seleccione su calificación:",
-                escala,
-                key=f"{experto}_{codigo}"
-            )
+        st.markdown(f"### {codigo}. {riesgo}")
+        st.write(descripcion)
 
-            respuestas.append({
-                "experto": experto,
-                "codigo": codigo,
-                "riesgo": riesgo,
-                "calificacion": calificacion,
-                "valor": convertir_likert(calificacion)
-            })
+        calificacion = st.selectbox(
+            "¿Qué tan importante considera este riesgo?",
+            escala,
+            key=f"likert_{experto}_{codigo}"
+        )
 
-        df_respuestas = pd.DataFrame(respuestas)
+        respuestas.append({
+            "experto": experto,
+            "codigo": codigo,
+            "riesgo": riesgo,
+            "calificacion": calificacion,
+            "valor": convertir_likert(calificacion)
+        })
 
-        st.subheader("Resumen de respuestas")
-        st.dataframe(df_respuestas, use_container_width=True)
+    df_respuestas = pd.DataFrame(respuestas)
 
-        if st.button("Enviar respuestas"):
-            guardar_respuestas(df_respuestas)
-            st.success("Respuestas guardadas correctamente.")
-    else:
-        st.warning("Ingrese el nombre o código del experto para iniciar.")
+    st.subheader("Resumen de respuestas")
+    st.dataframe(df_respuestas, width="stretch")
+
+    if st.button("Guardar respuestas y continuar a FAHP"):
+        guardar_respuestas(df_respuestas)
+        st.session_state["paso"] = 2
+        st.success("Respuestas Likert guardadas correctamente.")
+        st.rerun()
 # ---------------------------------------------------------
 # ETAPA 2: CÁLCULO RII
 # ---------------------------------------------------------
 
-elif menu == "2. Cálculo RII":
+elif st.session_state["paso"] == 2:
 
-    st.header("2. Cálculo del Índice de Importancia Relativa")
-
-    if st.button("Cargar respuestas guardadas"):
-        respuestas_totales = leer_respuestas()
-
-        if respuestas_totales.empty:
-            st.warning("Todavía no hay respuestas registradas.")
-        else:
-            st.subheader("Respuestas registradas")
-            st.dataframe(respuestas_totales, use_container_width=True)
-
-            resultado_rii = calcular_rii_desde_respuestas(respuestas_totales)
-
-            st.subheader("Ranking de riesgos según RII")
-            st.dataframe(resultado_rii, use_container_width=True)
-
-            st.session_state["resultado_rii"] = resultado_rii
-
-            csv = resultado_rii.to_csv(index=False).encode("utf-8")
-
-            st.download_button(
-                label="Descargar ranking RII",
-                data=csv,
-                file_name="ranking_rii.csv",
-                mime="text/csv"
-            )
-
-# ---------------------------------------------------------
-# ETAPA 3: SELECCIÓN DE RIESGOS PRINCIPALES
-# ---------------------------------------------------------
-
-elif menu == "3. Selección de riesgos principales":
-
-    st.header("3. Selección de riesgos principales")
-
-    if "resultado_rii" not in st.session_state:
-        st.warning("Primero debe calcular el RII en la etapa anterior.")
-    else:
-        resultado_rii = st.session_state["resultado_rii"]
-
-        umbral = st.slider(
-            "Seleccione el umbral mínimo de RII",
-            min_value=0.0,
-            max_value=1.0,
-            value=0.70,
-            step=0.01
-        )
-
-        riesgos_seleccionados = resultado_rii[resultado_rii["RII"] >= umbral]
-
-        st.subheader("Riesgos seleccionados")
-        st.dataframe(riesgos_seleccionados, use_container_width=True)
-
-        csv = riesgos_seleccionados.to_csv(index=False).encode("utf-8")
-
-        st.download_button(
-            label="Descargar riesgos seleccionados",
-            data=csv,
-            file_name="riesgos_seleccionados.csv",
-            mime="text/csv"
-        )
-
-
-# ---------------------------------------------------------
-# ETAPA 4: SELECCIÓN DE RIESGOS PRINCIPALES
-# ---------------------------------------------------------
-
-elif menu == "4. Encuesta FAHP de criterios":
-
-    st.header("4. Encuesta FAHP de comparación por pares entre criterios")
+    st.header("Paso 2: Comparación FAHP de criterios")
 
     st.write(
-        "En esta sección, el experto compara los criterios de evaluación entre sí. "
-        "El objetivo es determinar qué criterio es más importante para evaluar la criticidad "
-        "de los riesgos en un proyecto de diseño de cierre de mina."
+        "Compare los criterios de evaluación entre sí. Para cada par, seleccione qué criterio "
+        "considera más importante y con qué intensidad."
     )
 
     criterios = pd.read_csv("data/criterios.csv")
 
     st.subheader("Criterios de evaluación")
     st.dataframe(criterios, width="stretch")
-
-    experto = st.text_input("Nombre o código del experto FAHP")
 
     pares = generar_pares_criterios(criterios)
 
@@ -240,339 +201,294 @@ elif menu == "4. Encuesta FAHP de criterios":
         "Extrema",
     ]
 
-    respuestas = []
+    respuestas_fahp = []
 
-    if experto:
+    pares_conflictivos = st.session_state.get("pares_conflictivos_fahp", set())
 
-        for c_i, c_j in pares:
-
-            codigo_i = c_i["Codigo"]
-            codigo_j = c_j["Codigo"]
-
-            nombre_i = c_i["Criterio"]
-            nombre_j = c_j["Criterio"]
-
-            st.markdown(f"### Comparación: {codigo_i} vs {codigo_j}")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.write(f"**{codigo_i}: {nombre_i}**")
-                st.caption(c_i["Que_mide"])
-
-            with col2:
-                st.write(f"**{codigo_j}: {nombre_j}**")
-                st.caption(c_j["Que_mide"])
-
-            criterio_preferido = st.radio(
-                "¿Cuál criterio considera más importante?",
-                [
-                    codigo_i,
-                    codigo_j,
-                    "Ambos tienen igual importancia",
-                ],
-                key=f"preferido_{experto}_{codigo_i}_{codigo_j}",
-                horizontal=True,
-            )
-
-            if criterio_preferido == "Ambos tienen igual importancia":
-                intensidad = "Igual importancia"
-                tfn = (1.0, 1.0, 1.0)
-                criterio_preferido_guardado = "igual"
-            else:
-                intensidad = st.selectbox(
-                    "¿Con qué intensidad?",
-                    intensidad_opciones[1:],
-                    key=f"intensidad_{experto}_{codigo_i}_{codigo_j}",
-                )
-                tfn = obtener_tfn(intensidad)
-                criterio_preferido_guardado = criterio_preferido
-
-            respuestas.append({
-                "experto": experto,
-                "criterio_i": codigo_i,
-                "criterio_j": codigo_j,
-                "criterio_i_nombre": nombre_i,
-                "criterio_j_nombre": nombre_j,
-                "criterio_preferido": criterio_preferido_guardado,
-                "intensidad": intensidad,
-                "l": tfn[0],
-                "m": tfn[1],
-                "u": tfn[2],
-            })
-
-        df_respuestas_fahp = pd.DataFrame(respuestas)
-
-        st.subheader("Resumen de respuestas FAHP")
-        st.dataframe(df_respuestas_fahp, width="stretch")
-
-        if st.button("Enviar respuestas FAHP"):
-            guardar_respuestas_fahp(df_respuestas_fahp)
-            st.success("Respuestas FAHP guardadas correctamente.")
-
-    else:
-        st.warning("Ingrese el nombre o código del experto para iniciar la encuesta FAHP.")
-
-# ---------------------------------------------------------
-# ETAPA 5: SELECCIÓN DE RIESGOS PRINCIPALES
-# ---------------------------------------------------------
-
-elif menu == "5. Matriz difusa FAHP":
-
-    st.header("5. Construcción de matriz difusa recíproca de comparación por pares")
-
-    criterios = pd.read_csv("data/criterios.csv")
-    respuestas_fahp = leer_respuestas_fahp()
-
-    if respuestas_fahp.empty:
-        st.warning("Todavía no hay respuestas FAHP registradas.")
-    else:
-        st.subheader("Respuestas FAHP registradas")
-        st.dataframe(respuestas_fahp, width="stretch")
-
-        expertos = respuestas_fahp["experto"].unique().tolist()
-
-        experto_seleccionado = st.selectbox(
-            "Seleccione el experto para construir su matriz FAHP",
-            expertos
+    if pares_conflictivos:
+        st.warning(
+            "Se detectaron posibles contradicciones en sus respuestas anteriores. "
+            "Revise especialmente las comparaciones marcadas en rojo."
         )
 
-        respuestas_experto = respuestas_fahp[
-            respuestas_fahp["experto"] == experto_seleccionado
-        ]
+    for c_i, c_j in pares:
+
+        codigo_i = c_i["Codigo"]
+        codigo_j = c_j["Codigo"]
+
+        nombre_i = c_i["Criterio"]
+        nombre_j = c_j["Criterio"]
+
+        par_actual = tuple(sorted([codigo_i, codigo_j]))
+
+        if par_actual in pares_conflictivos:
+            st.error(f"Revisar esta comparación: {codigo_i} vs {codigo_j}")
+
+        st.markdown(f"### Comparación: {codigo_i} vs {codigo_j}")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.write(f"**{codigo_i}: {nombre_i}**")
+            st.caption(c_i["Que_mide"])
+
+        with col2:
+            st.write(f"**{codigo_j}: {nombre_j}**")
+            st.caption(c_j["Que_mide"])
+
+        criterio_preferido = st.radio(
+            "¿Cuál criterio considera más importante?",
+            [
+                codigo_i,
+                codigo_j,
+                "Ambos tienen igual importancia",
+            ],
+            key=f"preferido_{experto}_{codigo_i}_{codigo_j}",
+            horizontal=True,
+        )
+
+        if criterio_preferido == "Ambos tienen igual importancia":
+            intensidad = "Igual importancia"
+            tfn = (1.0, 1.0, 1.0)
+            criterio_preferido_guardado = "igual"
+        else:
+            intensidad = st.selectbox(
+                "¿Con qué intensidad?",
+                intensidad_opciones[1:],
+                key=f"intensidad_{experto}_{codigo_i}_{codigo_j}",
+            )
+            tfn = obtener_tfn(intensidad)
+            criterio_preferido_guardado = criterio_preferido
+
+        respuestas_fahp.append({
+            "experto": experto,
+            "criterio_i": codigo_i,
+            "criterio_j": codigo_j,
+            "criterio_i_nombre": nombre_i,
+            "criterio_j_nombre": nombre_j,
+            "criterio_preferido": criterio_preferido_guardado,
+            "intensidad": intensidad,
+            "l": tfn[0],
+            "m": tfn[1],
+            "u": tfn[2],
+        })
+
+    df_respuestas_fahp = pd.DataFrame(respuestas_fahp)
+
+    st.subheader("Resumen FAHP")
+    st.dataframe(df_respuestas_fahp, width="stretch")
+
+    if st.button("Guardar FAHP y continuar a evaluación riesgo-criterio"):
 
         matriz_l, matriz_m, matriz_u, matriz_texto = construir_matriz_difusa(
             criterios,
-            respuestas_experto
+            df_respuestas_fahp
         )
 
-        st.subheader("Matriz difusa recíproca FAHP")
-        st.dataframe(matriz_texto, width="stretch")
-
-        st.subheader("Matriz crisp para validación de consistencia")
         matriz_crisp = matriz_central_para_cr(matriz_m)
-
-        df_crisp = pd.DataFrame(
-            matriz_crisp,
-            index=criterios["Codigo"],
-            columns=criterios["Codigo"]
-        )
-
-        st.dataframe(df_crisp, width="stretch")
 
         lambda_max, ci, cr, ri = calcular_cr(matriz_crisp)
 
-        st.subheader("Validación de consistencia")
+        st.subheader("Validación de consistencia FAHP")
 
         col1, col2, col3, col4 = st.columns(4)
-
         col1.metric("Lambda máx.", f"{lambda_max:.4f}")
         col2.metric("CI", f"{ci:.4f}")
         col3.metric("RI", f"{ri:.2f}")
         col4.metric("CR", f"{cr:.4f}")
 
         if cr <= 0.30:
-            st.success("La matriz es consistente: CR ≤ 0.30")
+
+            guardar_respuestas_fahp(df_respuestas_fahp)
+
+            if "pares_conflictivos_fahp" in st.session_state:
+                del st.session_state["pares_conflictivos_fahp"]
+
+            st.session_state["paso"] = 3
+            st.success(f"Matriz aceptable. CR = {cr:.4f} ≤ 0.30")
+            st.rerun()
+
         else:
-            st.error("La matriz no es consistente: CR > 0.30. Se recomienda revisar los juicios.")
 
-        pesos = calcular_pesos_crisp(matriz_crisp)
+            inconsistencias = detectar_inconsistencias_fuertes(
+                matriz_crisp=matriz_crisp,
+                criterios=criterios,
+                top_n=5
+            )
 
-        df_pesos = pd.DataFrame({
-            "Codigo": criterios["Codigo"],
-            "Criterio": criterios["Criterio"],
-            "Peso": pesos
-        })
+            st.error(
+                f"La matriz FAHP no es aceptable. CR = {cr:.4f} > 0.30. "
+                "Revise las comparaciones señaladas."
+            )
 
-        df_pesos["Peso_normalizado"] = df_pesos["Peso"] / df_pesos["Peso"].sum()
+            if not inconsistencias.empty:
+                st.subheader("Comparaciones sugeridas para revisión")
+                st.dataframe(inconsistencias, width="stretch")
 
-        st.subheader("Pesos normalizados de criterios")
-        st.dataframe(df_pesos, width="stretch")
+                nuevos_pares_conflictivos = set()
 
-        csv = df_pesos.to_csv(index=False).encode("utf-8")
+                for _, row in inconsistencias.iterrows():
+                    for col in ["Comparación 1", "Comparación 2", "Comparación 3"]:
+                        c_a, c_b = row[col].split(" vs ")
+                        nuevos_pares_conflictivos.add(tuple(sorted([c_a, c_b])))
 
-        st.download_button(
-            label="Descargar pesos FAHP",
-            data=csv,
-            file_name=f"pesos_fahp_{experto_seleccionado}.csv",
-            mime="text/csv"
-        )
+                st.session_state["pares_conflictivos_fahp"] = nuevos_pares_conflictivos
+
+                st.warning(
+                    "Vuelva a presionar el botón después de corregir las comparaciones marcadas."
+                )
+
+            st.stop()
 
 # ---------------------------------------------------------
-# ETAPA 6: SELECCIÓN DE RIESGOS PRINCIPALES
+# ETAPA 3: SELECCIÓN DE RIESGOS PRINCIPALES
 # ---------------------------------------------------------
 
-elif menu == "6. Evaluación matricial riesgo-criterio":
+elif st.session_state["paso"] == 3:
 
-    st.header("6. Evaluación matricial de riesgos frente a criterios")
+    st.header("Paso 3: Evaluación de riesgos frente a criterios")
 
     st.write(
-        "En esta sección, el experto evalúa automáticamente los riesgos seleccionados por RII "
-        "frente a los criterios ponderados mediante FAHP. No es necesario cargar archivos."
+        "Evalúe cada uno de los cuatro riesgos con mayor RII frente a cada criterio "
+        "mediante la escala lingüística difusa."
     )
 
-    # ===============================
-    # 1. Obtener riesgos seleccionados desde RII
-    # ===============================
-
+    # 1. Calcular automáticamente los 4 riesgos con mayor RII
     respuestas_rii = leer_respuestas()
 
     if respuestas_rii.empty:
-        st.warning("Todavía no hay respuestas RII registradas.")
+        st.warning("No hay respuestas RII registradas.")
         st.stop()
 
     resultado_rii = calcular_rii_desde_respuestas(respuestas_rii)
 
-    umbral_rii = st.slider(
-        "Umbral mínimo de RII para seleccionar riesgos",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.70,
-        step=0.01
-    )
-
-    riesgos_seleccionados = resultado_rii[resultado_rii["RII"] >= umbral_rii].copy()
+    riesgos_seleccionados = resultado_rii.sort_values("RII", ascending=False).head(4).copy()
 
     if riesgos_seleccionados.empty:
-        st.warning("No hay riesgos seleccionados con el umbral indicado.")
+        st.warning("No hay riesgos seleccionados.")
         st.stop()
 
-    st.subheader("Riesgos seleccionados automáticamente por RII")
+    st.subheader("Cuatro riesgos seleccionados automáticamente por mayor RII")
     st.dataframe(riesgos_seleccionados, width="stretch")
 
-    # ===============================
-    # 2. Obtener pesos FAHP automáticamente
-    # ===============================
+    # 2. Calcular pesos FAHP del mismo experto
+    criterios = pd.read_csv("data/criterios.csv")
+    respuestas_fahp = leer_respuestas_fahp()
 
-    df_pesos, cr, experto_fahp = obtener_pesos_fahp_automaticos()
+    respuestas_fahp_experto = respuestas_fahp[
+        respuestas_fahp["experto"] == experto
+    ]
 
-    if df_pesos is None:
-        st.warning("Todavía no hay respuestas FAHP registradas.")
+    if respuestas_fahp_experto.empty:
+        st.warning("No hay respuestas FAHP registradas para este experto.")
         st.stop()
 
-    st.subheader(f"Pesos FAHP usados: experto {experto_fahp}")
+    matriz_l, matriz_m, matriz_u, matriz_texto = construir_matriz_difusa(
+        criterios,
+        respuestas_fahp_experto
+    )
+
+    matriz_crisp = matriz_central_para_cr(matriz_m)
+    lambda_max, ci, cr, ri = calcular_cr(matriz_crisp)
+
+    pesos = calcular_pesos_crisp(matriz_crisp)
+
+    df_pesos = pd.DataFrame({
+        "Codigo": criterios["Codigo"],
+        "Criterio": criterios["Criterio"],
+        "Peso": pesos
+    })
+
+    df_pesos["Peso_normalizado"] = df_pesos["Peso"] / df_pesos["Peso"].sum()
+
+    st.subheader("Pesos FAHP del experto")
     st.dataframe(df_pesos, width="stretch")
 
-    if cr <= 0.10:
-        st.success(f"Matriz FAHP consistente: CR = {cr:.4f}")
+    if cr <= 0.30:
+        st.success(f"Matriz FAHP aceptable: CR = {cr:.4f}")
     else:
-        st.error(f"Matriz FAHP no consistente: CR = {cr:.4f}. Se recomienda revisar los juicios.")
+        st.error(f"Matriz FAHP no aceptable: CR = {cr:.4f}")
+        st.stop()
 
-    # ===============================
-    # 3. Encuesta matricial riesgo-criterio
-    # ===============================
-
-    experto = st.text_input("Nombre o código del experto evaluador")
-
+    # 3. Evaluación matricial riesgo-criterio
     escala = ["Muy bajo", "Bajo", "Medio", "Alto", "Muy alto"]
 
-    respuestas = []
+    respuestas_eval = []
 
-    if experto:
+    for _, riesgo_row in riesgos_seleccionados.iterrows():
 
-        st.subheader("Matriz de evaluación riesgo-criterio")
+        codigo_riesgo = riesgo_row.get("codigo", riesgo_row.get("Codigo", ""))
+        riesgo_nombre = riesgo_row.get("riesgo", riesgo_row.get("Riesgo", ""))
 
-        for _, riesgo_row in riesgos_seleccionados.iterrows():
+        st.markdown(f"### {codigo_riesgo}. {riesgo_nombre}")
 
-            codigo_riesgo = riesgo_row.get("codigo", riesgo_row.get("Codigo", ""))
-            riesgo_nombre = riesgo_row.get("riesgo", riesgo_row.get("Riesgo", ""))
+        columnas = st.columns(len(df_pesos))
 
-            st.markdown(f"### {codigo_riesgo}. {riesgo_nombre}")
+        for idx, criterio_row in df_pesos.iterrows():
 
-            columnas = st.columns(len(df_pesos))
+            codigo_criterio = criterio_row["Codigo"]
+            criterio_nombre = criterio_row["Criterio"]
 
-            for idx, criterio_row in df_pesos.iterrows():
+            with columnas[idx]:
 
-                codigo_criterio = criterio_row["Codigo"]
-                criterio_nombre = criterio_row["Criterio"]
+                calificacion = st.selectbox(
+                    f"{codigo_criterio}",
+                    escala,
+                    key=f"eval_{experto}_{codigo_riesgo}_{codigo_criterio}"
+                )
 
-                with columnas[idx]:
+                st.caption(criterio_nombre)
 
-                    calificacion = st.selectbox(
-                        f"{codigo_criterio}",
-                        escala,
-                        key=f"eval_{experto}_{codigo_riesgo}_{codigo_criterio}"
-                    )
+                l, m, u = obtener_tfn_calificacion(calificacion)
+                defuzzificado = defuzzificar_tfn(l, m, u)
 
-                    st.caption(criterio_nombre)
+                respuestas_eval.append({
+                    "experto": experto,
+                    "codigo_riesgo": codigo_riesgo,
+                    "riesgo": riesgo_nombre,
+                    "codigo_criterio": codigo_criterio,
+                    "criterio": criterio_nombre,
+                    "calificacion": calificacion,
+                    "l": l,
+                    "m": m,
+                    "u": u,
+                    "defuzzificado": defuzzificado,
+                })
 
-                    l, m, u = obtener_tfn_calificacion(calificacion)
-                    defuzzificado = defuzzificar_tfn(l, m, u)
+    df_respuestas_eval = pd.DataFrame(respuestas_eval)
 
-                    respuestas.append({
-                        "experto": experto,
-                        "codigo_riesgo": codigo_riesgo,
-                        "riesgo": riesgo_nombre,
-                        "codigo_criterio": codigo_criterio,
-                        "criterio": criterio_nombre,
-                        "calificacion": calificacion,
-                        "l": l,
-                        "m": m,
-                        "u": u,
-                        "defuzzificado": defuzzificado,
-                    })
+    st.subheader("Resumen de evaluación riesgo-criterio")
+    st.dataframe(df_respuestas_eval, width="stretch")
 
-        df_respuestas_eval = pd.DataFrame(respuestas)
+    if st.button("Finalizar evaluación"):
 
-        st.subheader("Resumen de evaluación")
-        st.dataframe(df_respuestas_eval, width="stretch")
+        guardar_respuestas_evaluacion(df_respuestas_eval)
 
-        if st.button("Enviar evaluación matricial"):
-            guardar_respuestas_evaluacion(df_respuestas_eval)
-            st.success("Evaluación matricial guardada correctamente.")
+        ranking = calcular_criticidad(
+            respuestas_evaluacion=df_respuestas_eval,
+            pesos_criterios=df_pesos
+        )
 
-    else:
-        st.warning("Ingrese el nombre o código del experto para iniciar la evaluación.")
+        st.session_state["ranking_final"] = ranking
+        st.session_state["paso"] = 4
+        st.success("Evaluación final guardada correctamente.")
+        st.rerun()
 
-# ---------------------------------------------------------
-# ETAPA 7: SELECCIÓN DE RIESGOS PRINCIPALES
-# ---------------------------------------------------------
+elif st.session_state["paso"] == 4:
 
-elif menu == "7. Ranking final de riesgos críticos":
+    st.header("Evaluación completada")
 
-    st.header("7. Ranking final de riesgos críticos")
+    st.success("Sus respuestas fueron registradas correctamente.")
 
-    respuestas_eval = leer_respuestas_evaluacion()
+    if "ranking_final" in st.session_state:
+        st.subheader("Ranking preliminar de riesgos críticos según sus respuestas")
+        st.dataframe(st.session_state["ranking_final"], width="stretch")
 
-    if respuestas_eval.empty:
-        st.warning("Todavía no hay evaluaciones matriciales registradas.")
-        st.stop()
+        st.bar_chart(
+            st.session_state["ranking_final"].set_index("riesgo")["puntaje_criticidad"]
+        )
 
-    st.subheader("Evaluaciones registradas")
-    st.dataframe(respuestas_eval, width="stretch")
-
-    # Obtener pesos FAHP automáticamente
-    df_pesos, cr, experto_fahp = obtener_pesos_fahp_automaticos()
-
-    if df_pesos is None:
-        st.warning("Todavía no hay pesos FAHP disponibles.")
-        st.stop()
-
-    st.subheader(f"Pesos FAHP usados: experto {experto_fahp}")
-    st.dataframe(df_pesos, width="stretch")
-
-    if cr <= 0.10:
-        st.success(f"Matriz FAHP consistente: CR = {cr:.4f}")
-    else:
-        st.error(f"Matriz FAHP no consistente: CR = {cr:.4f}. Se recomienda revisar los juicios.")
-
-    ranking = calcular_criticidad(
-        respuestas_evaluacion=respuestas_eval,
-        pesos_criterios=df_pesos
-    )
-
-    st.subheader("Ranking de riesgos críticos")
-    st.dataframe(ranking, width="stretch")
-
-    st.bar_chart(
-        ranking.set_index("riesgo")["puntaje_criticidad"]
-    )
-
-    csv = ranking.to_csv(index=False).encode("utf-8")
-
-    st.download_button(
-        label="Descargar ranking final",
-        data=csv,
-        file_name="ranking_final_riesgos_criticos.csv",
-        mime="text/csv"
+    st.write(
+        "Gracias por participar en la evaluación. La información registrada será utilizada "
+        "para consolidar el juicio experto del modelo multicriterio."
     )
