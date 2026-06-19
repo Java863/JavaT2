@@ -16,6 +16,7 @@ from modules.fahp import (
     calcular_pesos_crisp,
     calcular_cr,
     detectar_inconsistencias_fuertes,
+    calcular_pesos_globales_fahp,
 )
 
 from modules.db import (
@@ -427,45 +428,39 @@ elif st.session_state["paso"] == 3:
     st.subheader("Cuatro riesgos seleccionados automáticamente por mayor RII")
     st.dataframe(riesgos_seleccionados, width="stretch")
 
-    # 2. Calcular pesos FAHP del mismo experto
+    # 2. Calcular pesos FAHP globales
     criterios = pd.read_csv("data/criterios.csv")
     respuestas_fahp = leer_respuestas_fahp()
 
-    respuestas_fahp_experto = respuestas_fahp[
-        respuestas_fahp["experto"] == experto
-    ]
-
-    if respuestas_fahp_experto.empty:
-        st.warning("No hay respuestas FAHP registradas para este experto.")
+    if respuestas_fahp.empty:
+        st.warning("Todavía no hay respuestas FAHP registradas.")
         st.stop()
 
-    matriz_l, matriz_m, matriz_u, matriz_texto = construir_matriz_difusa(
-        criterios,
-        respuestas_fahp_experto
+    df_pesos, matriz_texto_global, matriz_crisp_global, lambda_max, ci, cr, ri = (
+        calcular_pesos_globales_fahp(
+            criterios=criterios,
+            respuestas_fahp=respuestas_fahp
+        )
     )
-
-    matriz_crisp = matriz_central_para_cr(matriz_m)
-    lambda_max, ci, cr, ri = calcular_cr(matriz_crisp)
-
-    pesos = calcular_pesos_crisp(matriz_crisp)
-
-    df_pesos = pd.DataFrame({
-        "Codigo": criterios["Codigo"],
-        "Criterio": criterios["Criterio"],
-        "Peso": pesos
-    })
-
-    df_pesos["Peso_normalizado"] = df_pesos["Peso"] / df_pesos["Peso"].sum()
-
-    st.subheader("Pesos FAHP del experto")
+    
+    st.subheader("Pesos FAHP globales de criterios")
     st.dataframe(df_pesos, width="stretch")
 
-    if cr <= 0.30:
-        st.success(f"Matriz FAHP aceptable: CR = {cr:.4f}")
-    else:
-        st.error(f"Matriz FAHP no aceptable: CR = {cr:.4f}")
-        st.stop()
+    st.subheader("Consistencia de la matriz FAHP global")
 
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Lambda máx.", f"{lambda_max:.4f}")
+    col2.metric("CI", f"{ci:.4f}")
+    col3.metric("RI", f"{ri:.2f}")
+    col4.metric("CR global", f"{cr:.4f}")
+
+    if cr <= 0.30:
+        st.success(f"Matriz FAHP global aceptable: CR = {cr:.4f}")
+    else:
+        st.warning(
+            f"La matriz FAHP global tiene CR = {cr:.4f}. "
+            "Se recomienda revisar las respuestas individuales, pero se continuará mostrando el cálculo."
+        )
     # 3. Evaluación matricial riesgo-criterio
     escala = ["Muy bajo", "Bajo", "Medio", "Alto", "Muy alto"]
 
@@ -536,15 +531,71 @@ elif st.session_state["paso"] == 4:
 
     st.success("Sus respuestas fueron registradas correctamente.")
 
-    if "ranking_final" in st.session_state:
-        st.subheader("Ranking preliminar de riesgos críticos según sus respuestas")
-        st.dataframe(st.session_state["ranking_final"], width="stretch")
-
-        st.bar_chart(
-            st.session_state["ranking_final"].set_index("riesgo")["puntaje_criticidad"]
-        )
-
     st.write(
-        "Gracias por participar en la evaluación. La información registrada será utilizada "
-        "para consolidar el juicio experto del modelo multicriterio."
+        "A continuación se muestra el ranking global de riesgos críticos, calculado con las respuestas "
+        "registradas por todos los expertos disponibles en la plataforma."
+    )
+
+    # 1. Leer respuestas globales de evaluación riesgo-criterio
+    respuestas_eval_global = leer_respuestas_evaluacion()
+
+    if respuestas_eval_global.empty:
+        st.warning("Todavía no hay evaluaciones riesgo-criterio registradas.")
+        st.stop()
+
+    # 2. Leer respuestas FAHP globales
+    criterios = pd.read_csv("data/criterios.csv")
+    respuestas_fahp_global = leer_respuestas_fahp()
+
+    if respuestas_fahp_global.empty:
+        st.warning("Todavía no hay respuestas FAHP registradas.")
+        st.stop()
+
+    # 3. Calcular pesos globales FAHP
+    df_pesos_globales, matriz_texto_global, matriz_crisp_global, lambda_max, ci, cr, ri = (
+        calcular_pesos_globales_fahp(
+            criterios=criterios,
+            respuestas_fahp=respuestas_fahp_global
+        )
+    )
+
+    st.subheader("Pesos globales de criterios FAHP")
+    st.dataframe(df_pesos_globales, width="stretch")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Lambda máx.", f"{lambda_max:.4f}")
+    col2.metric("CI", f"{ci:.4f}")
+    col3.metric("RI", f"{ri:.2f}")
+    col4.metric("CR global", f"{cr:.4f}")
+
+    if cr <= 0.30:
+        st.success(f"Matriz FAHP global aceptable: CR = {cr:.4f}")
+    else:
+        st.warning(f"Matriz FAHP global con CR = {cr:.4f}. Revisar consistencia global.")
+
+    # 4. Calcular ranking global de riesgos
+    ranking_global = calcular_criticidad(
+        respuestas_evaluacion=respuestas_eval_global,
+        pesos_criterios=df_pesos_globales
+    )
+
+    st.subheader("Ranking global de riesgos críticos")
+    st.dataframe(ranking_global, width="stretch")
+
+    st.bar_chart(
+        ranking_global.set_index("riesgo")["puntaje_criticidad"]
+    )
+
+    csv = ranking_global.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Descargar ranking global",
+        data=csv,
+        file_name="ranking_global_riesgos_criticos.csv",
+        mime="text/csv"
+    )
+
+    st.info(
+        "El ranking global se actualiza automáticamente cada vez que un nuevo experto completa "
+        "las tres encuestas."
     )
