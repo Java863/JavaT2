@@ -1,6 +1,7 @@
 from modules.rii import convertir_likert, calcular_rii_desde_respuestas
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 from modules.evaluacion import (
     obtener_tfn_calificacion,
@@ -82,12 +83,16 @@ def mostrar_ranking_global():
         pesos_criterios=df_pesos_globales
     )
 
+    ranking_global = ranking_global.sort_values("puntaje_criticidad", ascending=False).reset_index(drop=True)
+    ranking_global.index = ranking_global.index + 1
+    ranking_global = ranking_global.rename_axis("Ranking").reset_index()
+    ranking_global["puntaje_criticidad"] = ranking_global["puntaje_criticidad"].round(4)
+
     st.subheader("Ranking global de riesgos críticos")
     st.dataframe(ranking_global, width="stretch")
 
-    st.bar_chart(
-        ranking_global.set_index("riesgo")["puntaje_criticidad"]
-    )
+    fig = graficar_ranking_riesgos(ranking_global)
+    st.plotly_chart(fig, use_container_width=True)
 
     csv = ranking_global.to_csv(index=False).encode("utf-8")
 
@@ -97,6 +102,59 @@ def mostrar_ranking_global():
         file_name="ranking_global_riesgos_criticos.csv",
         mime="text/csv"
     )
+
+def graficar_ranking_riesgos(ranking_df):
+    df = ranking_df.copy()
+
+    # Asegurar orden de mayor a menor
+    df = df.sort_values("puntaje_criticidad", ascending=False).reset_index(drop=True)
+
+    # Crear una etiqueta más amigable para el gráfico
+    def resumir_texto(texto, max_len=55):
+        texto = str(texto)
+        if len(texto) <= max_len:
+            return texto
+        return texto[:max_len] + "..."
+
+    # Si tienes columna codigo_riesgo
+    if "codigo_riesgo" in df.columns:
+        df["etiqueta_grafico"] = df.apply(
+            lambda x: f"{x['codigo_riesgo']} - {resumir_texto(x['riesgo'])}",
+            axis=1
+        )
+    else:
+        df["etiqueta_grafico"] = df["riesgo"].apply(resumir_texto)
+
+    # Invertir para que el mayor quede arriba en gráfico horizontal
+    df = df.sort_values("puntaje_criticidad", ascending=True)
+
+    fig = px.bar(
+        df,
+        x="puntaje_criticidad",
+        y="etiqueta_grafico",
+        orientation="h",
+        text="puntaje_criticidad",
+        title="Ranking global de riesgos críticos"
+    )
+
+    fig.update_traces(
+        texttemplate="%{text:.4f}",
+        textposition="outside",
+        hovertemplate="<b>%{y}</b><br>Puntaje: %{x:.4f}<extra></extra>"
+    )
+
+    fig.update_layout(
+        xaxis_title="Puntaje de criticidad",
+        yaxis_title="Riesgos",
+        height=max(450, 60 * len(df)),
+        margin=dict(l=20, r=40, t=60, b=20),
+        title_x=0.02
+    )
+
+    return fig
+
+
+
 
 st.set_page_config(
     page_title="Modelo de riesgos de cierre de mina",
@@ -218,7 +276,6 @@ if not st.session_state["experto"]:
         st.info("Ingrese su nombre o código para iniciar la evaluación.")
 
     st.stop()
-
 
 experto = st.session_state["experto"]
 paso = st.session_state["paso"]
@@ -653,9 +710,8 @@ elif st.session_state["paso"] == 4:
     st.subheader("Ranking global de riesgos críticos")
     st.dataframe(ranking_global, width="stretch")
 
-    st.bar_chart(
-        ranking_global.set_index("riesgo")["puntaje_criticidad"]
-    )
+    fig = graficar_ranking_riesgos(ranking_global)
+    st.plotly_chart(fig, use_container_width=True)
 
     csv = ranking_global.to_csv(index=False).encode("utf-8")
 
