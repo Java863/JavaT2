@@ -109,23 +109,23 @@ def graficar_ranking_riesgos(ranking_df):
     # Asegurar orden de mayor a menor
     df = df.sort_values("puntaje_criticidad", ascending=False).reset_index(drop=True)
 
-    # Crear una etiqueta más amigable para el gráfico
     def resumir_texto(texto, max_len=55):
         texto = str(texto)
         if len(texto) <= max_len:
             return texto
         return texto[:max_len] + "..."
 
-    # Si tienes columna codigo_riesgo
-    if "codigo_riesgo" in df.columns:
+    codigo_col = "codigo_riesgo" if "codigo_riesgo" in df.columns else None
+
+    if codigo_col:
         df["etiqueta_grafico"] = df.apply(
-            lambda x: f"{x['codigo_riesgo']} - {resumir_texto(x['riesgo'])}",
+            lambda x: f"{x[codigo_col]} - {resumir_texto(x['riesgo'])}",
             axis=1
         )
     else:
         df["etiqueta_grafico"] = df["riesgo"].apply(resumir_texto)
 
-    # Invertir para que el mayor quede arriba en gráfico horizontal
+    # Para que el mayor aparezca arriba en barras horizontales
     df = df.sort_values("puntaje_criticidad", ascending=True)
 
     fig = px.bar(
@@ -145,7 +145,7 @@ def graficar_ranking_riesgos(ranking_df):
 
     fig.update_layout(
         xaxis_title="Puntaje de criticidad",
-        yaxis_title="Riesgos",
+        yaxis_title="",
         height=max(450, 60 * len(df)),
         margin=dict(l=20, r=40, t=60, b=20),
         title_x=0.02
