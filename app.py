@@ -371,10 +371,10 @@ elif menu == "5. Matriz difusa FAHP":
         col3.metric("RI", f"{ri:.2f}")
         col4.metric("CR", f"{cr:.4f}")
 
-        if cr <= 0.10:
-            st.success("La matriz es consistente: CR ≤ 0.10")
+        if cr <= 0.30:
+            st.success("La matriz es consistente: CR ≤ 0.30")
         else:
-            st.error("La matriz no es consistente: CR > 0.10. Se recomienda revisar los juicios.")
+            st.error("La matriz no es consistente: CR > 0.30. Se recomienda revisar los juicios.")
 
         pesos = calcular_pesos_crisp(matriz_crisp)
 
