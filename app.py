@@ -78,17 +78,17 @@ def mostrar_tabla_texto_completo(df):
     /* Anchos por columna */
     table.tabla-texto-completo th:nth-child(1),
     table.tabla-texto-completo td:nth-child(1) {{
-        width: 8%;
+        width: 6%;
     }}
 
     table.tabla-texto-completo th:nth-child(2),
     table.tabla-texto-completo td:nth-child(2) {{
-        width: 32%;
+        width: 33%;
     }}
 
     table.tabla-texto-completo th:nth-child(3),
     table.tabla-texto-completo td:nth-child(3) {{
-        width: 60%;
+        width: 61%;
     }}
     </style>
 
