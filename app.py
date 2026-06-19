@@ -63,7 +63,6 @@ def mostrar_ranking_global():
     )
 
     st.subheader("Pesos globales de criterios")
-
     st.dataframe(df_pesos_globales, width="stretch")
 
     col1, col2, col3, col4 = st.columns(4)
@@ -83,15 +82,53 @@ def mostrar_ranking_global():
         pesos_criterios=df_pesos_globales
     )
 
-    ranking_global = ranking_global.sort_values("puntaje_criticidad", ascending=False).reset_index(drop=True)
-    ranking_global.index = ranking_global.index + 1
-    ranking_global = ranking_global.rename_axis("Ranking").reset_index()
+    # Ordenar ranking global una sola vez
+    ranking_global = ranking_global.sort_values(
+        "puntaje_criticidad",
+        ascending=False
+    ).reset_index(drop=True)
+
     ranking_global["puntaje_criticidad"] = ranking_global["puntaje_criticidad"].round(4)
 
+    # Agregar columna Ranking
+    ranking_global.insert(0, "Ranking", range(1, len(ranking_global) + 1))
+
     st.subheader("Ranking global de riesgos críticos")
+
+    # Resumen ejecutivo
+    if len(ranking_global) >= 1:
+        top1 = ranking_global.iloc[0]
+
+        st.markdown(f"""
+### Resumen ejecutivo
+
+**Riesgo más crítico:**  
+{top1['codigo_riesgo']} - {top1['riesgo']}
+
+**Puntaje de criticidad:** {top1['puntaje_criticidad']}
+""")
+
+    if len(ranking_global) >= 3:
+        top2 = ranking_global.iloc[1]
+        top3 = ranking_global.iloc[2]
+
+        st.markdown(f"""
+**Segundo riesgo crítico:**  
+{top2['codigo_riesgo']} - {top2['riesgo']}
+
+**Tercer riesgo crítico:**  
+{top3['codigo_riesgo']} - {top3['riesgo']}
+""")
+
+    # Tabla completa
     st.dataframe(ranking_global, width="stretch")
 
-    fig = graficar_ranking_riesgos(ranking_global)
+    # Gráfico horizontal Top 5
+    st.subheader("Top 5 riesgos críticos")
+
+    top5 = ranking_global.head(5)
+
+    fig = graficar_ranking_riesgos(top5)
     st.plotly_chart(fig, use_container_width=True)
 
     csv = ranking_global.to_csv(index=False).encode("utf-8")
@@ -103,13 +140,14 @@ def mostrar_ranking_global():
         mime="text/csv"
     )
 
+
 def graficar_ranking_riesgos(ranking_df):
     df = ranking_df.copy()
 
     # Asegurar orden de mayor a menor
     df = df.sort_values("puntaje_criticidad", ascending=False).reset_index(drop=True)
 
-    def resumir_texto(texto, max_len=55):
+    def resumir_texto(texto, max_len=75):
         texto = str(texto)
         if len(texto) <= max_len:
             return texto
@@ -134,7 +172,7 @@ def graficar_ranking_riesgos(ranking_df):
         y="etiqueta_grafico",
         orientation="h",
         text="puntaje_criticidad",
-        title="Ranking global de riesgos críticos"
+        title="Top 5 riesgos críticos"
     )
 
     fig.update_traces(
@@ -147,7 +185,7 @@ def graficar_ranking_riesgos(ranking_df):
         xaxis_title="Puntaje de criticidad",
         yaxis_title="",
         height=max(450, 60 * len(df)),
-        margin=dict(l=20, r=40, t=60, b=20),
+        margin=dict(l=120, r=40, t=60, b=20),
         title_x=0.02
     )
 
