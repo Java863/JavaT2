@@ -222,7 +222,7 @@ elif st.session_state["paso"] == 2:
         par_actual = tuple(sorted([codigo_i, codigo_j]))
 
         if par_actual in pares_conflictivos:
-            st.error(f"Revisar esta comparación: {codigo_i} vs {codigo_j}")
+            st.error(f"Debe corregir esta comparación: {codigo_i} vs {codigo_j}")
 
         st.markdown(f"### Comparación: {codigo_i} vs {codigo_j}")
 
@@ -322,8 +322,6 @@ elif st.session_state["paso"] == 2:
             )
 
             if not inconsistencias.empty:
-                st.subheader("Comparaciones sugeridas para revisión")
-                st.dataframe(inconsistencias, width="stretch")
 
                 nuevos_pares_conflictivos = set()
 
@@ -334,8 +332,22 @@ elif st.session_state["paso"] == 2:
 
                 st.session_state["pares_conflictivos_fahp"] = nuevos_pares_conflictivos
 
+                st.subheader("Comparaciones sugeridas para corregir")
+
+                st.write(
+                    "La matriz presenta inconsistencias fuertes. Revise especialmente las siguientes comparaciones:"
+                )
+
+                pares_ordenados = sorted(list(nuevos_pares_conflictivos))
+
+                for c_a, c_b in pares_ordenados:
+                    st.error(f"Corregir: {c_a} vs {c_b}")
+
+                with st.expander("Ver detalle técnico de las inconsistencias"):
+                    st.dataframe(inconsistencias, width="stretch")
                 st.warning(
-                    "Vuelva a presionar el botón después de corregir las comparaciones marcadas."
+                    "Corrija las comparaciones marcadas arriba y luego vuelva a presionar "
+                    "“Guardar FAHP y continuar a evaluación riesgo-criterio”."
                 )
 
             st.stop()
