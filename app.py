@@ -31,23 +31,23 @@ from modules.db import (
     eliminar_respuestas_experto,
 )
 
-def mostrar_tabla_texto_completo(df):
+def mostrar_tabla_criterios(df):
     html = df.to_html(
         index=False,
         escape=False,
-        classes="tabla-texto-completo"
+        classes="tabla-criterios"
     )
 
     tabla_html = f"""
     <style>
-    table.tabla-texto-completo {{
+    table.tabla-criterios {{
         width: 100%;
         border-collapse: collapse;
         table-layout: fixed;
         font-size: 15px;
     }}
 
-    table.tabla-texto-completo th {{
+    table.tabla-criterios th {{
         background-color: #1f222a;
         color: #ffffff;
         padding: 10px;
@@ -57,7 +57,7 @@ def mostrar_tabla_texto_completo(df):
         white-space: normal;
     }}
 
-    table.tabla-texto-completo td {{
+    table.tabla-criterios td {{
         padding: 10px;
         border: 1px solid #3a3d45;
         vertical-align: top;
@@ -67,28 +67,36 @@ def mostrar_tabla_texto_completo(df):
         line-height: 1.45;
     }}
 
-    table.tabla-texto-completo tr:nth-child(even) {{
+    table.tabla-criterios tr:nth-child(even) {{
         background-color: #111827;
     }}
 
-    table.tabla-texto-completo tr:nth-child(odd) {{
+    table.tabla-criterios tr:nth-child(odd) {{
         background-color: #0f141c;
     }}
 
-    /* Anchos por columna */
-    table.tabla-texto-completo th:nth-child(1),
-    table.tabla-texto-completo td:nth-child(1) {{
+    /* Código */
+    table.tabla-criterios th:nth-child(1),
+    table.tabla-criterios td:nth-child(1) {{
         width: 6%;
     }}
 
-    table.tabla-texto-completo th:nth-child(2),
-    table.tabla-texto-completo td:nth-child(2) {{
-        width: 33%;
+    /* Criterio */
+    table.tabla-criterios th:nth-child(2),
+    table.tabla-criterios td:nth-child(2) {{
+        width: 24%;
     }}
 
-    table.tabla-texto-completo th:nth-child(3),
-    table.tabla-texto-completo td:nth-child(3) {{
-        width: 61%;
+    /* Qué mide */
+    table.tabla-criterios th:nth-child(3),
+    table.tabla-criterios td:nth-child(3) {{
+        width: 25%;
+    }}
+
+    /* Descripción */
+    table.tabla-criterios th:nth-child(4),
+    table.tabla-criterios td:nth-child(4) {{
+        width: 45%;
     }}
     </style>
 
@@ -96,7 +104,6 @@ def mostrar_tabla_texto_completo(df):
     """
 
     st.html(tabla_html)
-
 
 def mostrar_ranking_global():
     st.header("Ranking global actual de riesgos críticos")
