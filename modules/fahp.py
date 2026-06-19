@@ -176,3 +176,91 @@ def detectar_inconsistencias_fuertes(matriz_crisp, criterios: pd.DataFrame, top_
         return df
 
     return df.sort_values("Desviación", ascending=False).head(top_n)
+
+def agregar_matrices_fahp_global(criterios: pd.DataFrame, respuestas_fahp: pd.DataFrame):
+    """
+    Construye una matriz FAHP global agregando las matrices individuales
+    mediante media geométrica difusa.
+
+    Solo considera los expertos presentes en respuestas_fahp.
+    """
+
+    codigos = criterios["Codigo"].tolist()
+    n = len(codigos)
+
+    expertos = respuestas_fahp["experto"].unique().tolist()
+
+    matrices_l = []
+    matrices_m = []
+    matrices_u = []
+
+    for experto in expertos:
+        respuestas_experto = respuestas_fahp[
+            respuestas_fahp["experto"] == experto
+        ]
+
+        matriz_l, matriz_m, matriz_u, _ = construir_matriz_difusa(
+            criterios,
+            respuestas_experto
+        )
+
+        matrices_l.append(matriz_l)
+        matrices_m.append(matriz_m)
+        matrices_u.append(matriz_u)
+
+    matrices_l = np.array(matrices_l)
+    matrices_m = np.array(matrices_m)
+    matrices_u = np.array(matrices_u)
+
+    # Media geométrica por celda
+    matriz_l_global = np.prod(matrices_l, axis=0) ** (1 / len(expertos))
+    matriz_m_global = np.prod(matrices_m, axis=0) ** (1 / len(expertos))
+    matriz_u_global = np.prod(matrices_u, axis=0) ** (1 / len(expertos))
+
+    matriz_texto = pd.DataFrame("", index=codigos, columns=codigos)
+
+    for i in range(n):
+        for j in range(n):
+            matriz_texto.iloc[i, j] = (
+                f"({matriz_l_global[i, j]:.4f}, "
+                f"{matriz_m_global[i, j]:.4f}, "
+                f"{matriz_u_global[i, j]:.4f})"
+            )
+
+    return matriz_l_global, matriz_m_global, matriz_u_global, matriz_texto
+
+
+def calcular_pesos_globales_fahp(criterios: pd.DataFrame, respuestas_fahp: pd.DataFrame):
+    """
+    Calcula los pesos globales FAHP a partir de todas las respuestas de expertos.
+    """
+
+    matriz_l_g, matriz_m_g, matriz_u_g, matriz_texto_g = agregar_matrices_fahp_global(
+        criterios,
+        respuestas_fahp
+    )
+
+    matriz_crisp_global = matriz_central_para_cr(matriz_m_g)
+
+    lambda_max, ci, cr, ri = calcular_cr(matriz_crisp_global)
+
+    pesos = calcular_pesos_crisp(matriz_crisp_global)
+
+    df_pesos_globales = pd.DataFrame({
+        "Codigo": criterios["Codigo"],
+        "Criterio": criterios["Criterio"],
+        "Peso": pesos
+    })
+
+    df_pesos_globales["Peso_normalizado"] = (
+        df_pesos_globales["Peso"] / df_pesos_globales["Peso"].sum()
+    )
+
+    df_pesos_globales = df_pesos_globales.sort_values(
+        "Peso_normalizado",
+        ascending=False
+    )
+
+    return df_pesos_globales, matriz_texto_g, matriz_crisp_global, lambda_max, ci, cr, ri
+
+
