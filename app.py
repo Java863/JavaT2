@@ -34,49 +34,49 @@ from modules.db import (
 def mostrar_tabla_texto_completo(df):
     html = df.to_html(index=False, escape=False)
 
-    st.markdown(
-        f"""
-        <style>
-        .tabla-texto-completo table {{
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }}
+    tabla_html = f"""
+    <style>
+    .tabla-texto-completo table {{
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 15px;
+    }}
 
-        .tabla-texto-completo th {{
-            background-color: #1f222a;
-            color: #ffffff;
-            padding: 10px;
-            border: 1px solid #3a3d45;
-            text-align: left;
-            font-weight: bold;
-        }}
+    .tabla-texto-completo th {{
+        background-color: #1f222a;
+        color: #ffffff;
+        padding: 10px;
+        border: 1px solid #3a3d45;
+        text-align: left;
+        font-weight: bold;
+        white-space: normal;
+    }}
 
-        .tabla-texto-completo td {{
-            padding: 10px;
-            border: 1px solid #3a3d45;
-            vertical-align: top;
-            white-space: normal;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }}
+    .tabla-texto-completo td {{
+        padding: 10px;
+        border: 1px solid #3a3d45;
+        vertical-align: top;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }}
 
-        .tabla-texto-completo tr:nth-child(even) {{
-            background-color: #111827;
-        }}
+    .tabla-texto-completo tr:nth-child(even) {{
+        background-color: #111827;
+    }}
 
-        .tabla-texto-completo tr:nth-child(odd) {{
-            background-color: #0f141c;
-        }}
-        </style>
+    .tabla-texto-completo tr:nth-child(odd) {{
+        background-color: #0f141c;
+    }}
+    </style>
 
-        <div class="tabla-texto-completo">
-            {html}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    <div class="tabla-texto-completo">
+        {html}
+    </div>
+    """
 
+    st.markdown(tabla_html, unsafe_allow_html=True)
 
 
 def mostrar_ranking_global():
