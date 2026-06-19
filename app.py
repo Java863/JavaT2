@@ -30,46 +30,73 @@ from modules.db import (
     eliminar_respuestas_experto,
 )
 
+def mostrar_ranking_global():
+    st.header("Ranking global actual de riesgos críticos")
 
-def obtener_pesos_fahp_automaticos():
+    st.write(
+        "Este ranking se calcula con las respuestas registradas hasta el momento "
+        "por los expertos en la plataforma."
+    )
+
+    # Leer respuestas globales de evaluación riesgo-criterio
+    respuestas_eval_global = leer_respuestas_evaluacion()
+
+    if respuestas_eval_global.empty:
+        st.warning("Todavía no hay evaluaciones riesgo-criterio registradas.")
+        return
+
+    # Leer respuestas FAHP globales
     criterios = pd.read_csv("data/criterios.csv")
-    respuestas_fahp = leer_respuestas_fahp()
+    respuestas_fahp_global = leer_respuestas_fahp()
 
-    if respuestas_fahp.empty:
-        return None, None, None
+    if respuestas_fahp_global.empty:
+        st.warning("Todavía no hay respuestas FAHP registradas.")
+        return
 
-    expertos = respuestas_fahp["experto"].unique().tolist()
-
-    experto_seleccionado = st.selectbox(
-        "Seleccione el experto FAHP para usar sus pesos",
-        expertos,
-        key="experto_fahp_automatico"
+    # Calcular pesos globales FAHP
+    df_pesos_globales, matriz_texto_global, matriz_crisp_global, lambda_max, ci, cr, ri = (
+        calcular_pesos_globales_fahp(
+            criterios=criterios,
+            respuestas_fahp=respuestas_fahp_global
+        )
     )
 
-    respuestas_experto = respuestas_fahp[
-        respuestas_fahp["experto"] == experto_seleccionado
-    ]
+    st.subheader("Pesos globales de criterios")
 
-    matriz_l, matriz_m, matriz_u, matriz_texto = construir_matriz_difusa(
-        criterios,
-        respuestas_experto
+    st.dataframe(df_pesos_globales, width="stretch")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Lambda máx.", f"{lambda_max:.4f}")
+    col2.metric("CI", f"{ci:.4f}")
+    col3.metric("RI", f"{ri:.2f}")
+    col4.metric("CR global", f"{cr:.4f}")
+
+    if cr <= 0.30:
+        st.success(f"Matriz FAHP global aceptable: CR = {cr:.4f}")
+    else:
+        st.warning(f"Matriz FAHP global con CR = {cr:.4f}. Revisar consistencia global.")
+
+    # Calcular ranking global
+    ranking_global = calcular_criticidad(
+        respuestas_evaluacion=respuestas_eval_global,
+        pesos_criterios=df_pesos_globales
     )
 
-    matriz_crisp = matriz_central_para_cr(matriz_m)
+    st.subheader("Ranking global de riesgos críticos")
+    st.dataframe(ranking_global, width="stretch")
 
-    lambda_max, ci, cr, ri = calcular_cr(matriz_crisp)
+    st.bar_chart(
+        ranking_global.set_index("riesgo")["puntaje_criticidad"]
+    )
 
-    pesos = calcular_pesos_crisp(matriz_crisp)
+    csv = ranking_global.to_csv(index=False).encode("utf-8")
 
-    df_pesos = pd.DataFrame({
-        "Codigo": criterios["Codigo"],
-        "Criterio": criterios["Criterio"],
-        "Peso": pesos
-    })
-
-    df_pesos["Peso_normalizado"] = df_pesos["Peso"] / df_pesos["Peso"].sum()
-
-    return df_pesos, cr, experto_seleccionado
+    st.download_button(
+        label="Descargar ranking global",
+        data=csv,
+        file_name="ranking_global_riesgos_criticos.csv",
+        mime="text/csv"
+    )
 
 st.set_page_config(
     page_title="Modelo de riesgos de cierre de mina",
@@ -91,6 +118,51 @@ if "paso" not in st.session_state:
 
 if "experto" not in st.session_state:
     st.session_state["experto"] = ""
+
+if "modo" not in st.session_state:
+    st.session_state["modo"] = ""
+
+if not st.session_state["modo"]:
+
+    st.header("Seleccione una opción")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("Completar encuesta")
+        st.write(
+            "Ingrese como experto para responder la evaluación Likert, la comparación FAHP "
+            "y la evaluación riesgo-criterio."
+        )
+
+        if st.button("Iniciar encuesta como experto"):
+            st.session_state["modo"] = "encuesta"
+            st.rerun()
+
+    with col2:
+        st.subheader("Ver ranking global")
+        st.write(
+            "Consulte el ranking global de riesgos críticos calculado con las respuestas "
+            "registradas hasta el momento."
+        )
+
+        if st.button("Mostrar ranking global actual"):
+            st.session_state["modo"] = "ranking"
+            st.rerun()
+
+    st.stop()
+
+if st.session_state["modo"] == "ranking":
+
+   if st.button("Volver al inicio"):
+        st.session_state["modo"] = ""
+        st.session_state["experto"] = ""
+        st.session_state["paso"] = 1
+        st.rerun()
+
+    mostrar_ranking_global()
+    st.stop()
+
 
 if not st.session_state["experto"]:
 
@@ -599,3 +671,8 @@ elif st.session_state["paso"] == 4:
         "El ranking global se actualiza automáticamente cada vez que un nuevo experto completa "
         "las tres encuestas."
     )
+    if st.button("Volver al inicio"):
+    st.session_state["modo"] = ""
+    st.session_state["experto"] = ""
+    st.session_state["paso"] = 1
+    st.rerun()
