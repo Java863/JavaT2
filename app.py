@@ -810,8 +810,8 @@ elif st.session_state["paso"] == 3:
 
     df_respuestas_eval = pd.DataFrame(respuestas_eval)
 
-    st.subheader("Resumen de evaluación riesgo-criterio")
-    st.dataframe(df_respuestas_eval, width="stretch")
+    #st.subheader("Resumen de evaluación riesgo-criterio")
+    #st.dataframe(df_respuestas_eval, width="stretch")
 
     if st.button("Finalizar evaluación"):
 
