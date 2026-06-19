@@ -31,6 +31,72 @@ from modules.db import (
     eliminar_respuestas_experto,
 )
 
+def mostrar_tabla_riesgos(df):
+    html = df.to_html(
+        index=False,
+        escape=False,
+        classes="tabla-riesgos"
+    )
+
+    tabla_html = f"""
+    <style>
+    table.tabla-riesgos {{
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 15px;
+    }}
+
+    table.tabla-riesgos th {{
+        background-color: #1f222a;
+        color: #ffffff;
+        padding: 10px;
+        border: 1px solid #3a3d45;
+        text-align: left;
+        font-weight: bold;
+        white-space: normal;
+    }}
+
+    table.tabla-riesgos td {{
+        padding: 10px;
+        border: 1px solid #3a3d45;
+        vertical-align: top;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.45;
+    }}
+
+    table.tabla-riesgos tr:nth-child(even) {{
+        background-color: #111827;
+    }}
+
+    table.tabla-riesgos tr:nth-child(odd) {{
+        background-color: #0f141c;
+    }}
+
+    table.tabla-riesgos th:nth-child(1),
+    table.tabla-riesgos td:nth-child(1) {{
+        width: 7%;
+    }}
+
+    table.tabla-riesgos th:nth-child(2),
+    table.tabla-riesgos td:nth-child(2) {{
+        width: 33%;
+    }}
+
+    table.tabla-riesgos th:nth-child(3),
+    table.tabla-riesgos td:nth-child(3) {{
+        width: 60%;
+    }}
+    </style>
+
+    {html}
+    """
+
+    st.html(tabla_html)
+
+
 def mostrar_tabla_criterios(df):
     html = df.to_html(
         index=False,
@@ -75,25 +141,21 @@ def mostrar_tabla_criterios(df):
         background-color: #0f141c;
     }}
 
-    /* Código */
     table.tabla-criterios th:nth-child(1),
     table.tabla-criterios td:nth-child(1) {{
-        width: 6%;
+        width: 7%;
     }}
 
-    /* Criterio */
     table.tabla-criterios th:nth-child(2),
     table.tabla-criterios td:nth-child(2) {{
-        width: 24%;
+        width: 23%;
     }}
 
-    /* Qué mide */
     table.tabla-criterios th:nth-child(3),
     table.tabla-criterios td:nth-child(3) {{
         width: 25%;
     }}
 
-    /* Descripción */
     table.tabla-criterios th:nth-child(4),
     table.tabla-criterios td:nth-child(4) {{
         width: 45%;
@@ -419,7 +481,7 @@ if st.session_state["paso"] == 1:
     riesgos = pd.read_csv("data/riesgos_filtrados.csv")
 
     st.subheader("Riesgos a evaluar")
-    mostrar_tabla_texto_completo(riesgos)
+    mostrar_tabla_riesgos(riesgos)
 
     escala = ["Muy baja", "Baja", "Media", "Alta", "Muy alta"]
 
