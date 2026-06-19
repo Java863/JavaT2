@@ -32,18 +32,22 @@ from modules.db import (
 )
 
 def mostrar_tabla_texto_completo(df):
-    html = df.to_html(index=False, escape=False)
+    html = df.to_html(
+        index=False,
+        escape=False,
+        classes="tabla-texto-completo"
+    )
 
     tabla_html = f"""
     <style>
-    .tabla-texto-completo table {{
+    table.tabla-texto-completo {{
         width: 100%;
         border-collapse: collapse;
         table-layout: fixed;
         font-size: 15px;
     }}
 
-    .tabla-texto-completo th {{
+    table.tabla-texto-completo th {{
         background-color: #1f222a;
         color: #ffffff;
         padding: 10px;
@@ -53,7 +57,7 @@ def mostrar_tabla_texto_completo(df):
         white-space: normal;
     }}
 
-    .tabla-texto-completo td {{
+    table.tabla-texto-completo td {{
         padding: 10px;
         border: 1px solid #3a3d45;
         vertical-align: top;
@@ -62,21 +66,19 @@ def mostrar_tabla_texto_completo(df):
         overflow-wrap: break-word;
     }}
 
-    .tabla-texto-completo tr:nth-child(even) {{
+    table.tabla-texto-completo tr:nth-child(even) {{
         background-color: #111827;
     }}
 
-    .tabla-texto-completo tr:nth-child(odd) {{
+    table.tabla-texto-completo tr:nth-child(odd) {{
         background-color: #0f141c;
     }}
     </style>
 
-    <div class="tabla-texto-completo">
-        {html}
-    </div>
+    {html}
     """
 
-    st.markdown(tabla_html, unsafe_allow_html=True)
+    st.html(tabla_html)
 
 
 def mostrar_ranking_global():
