@@ -100,13 +100,50 @@ if not st.session_state["experto"]:
         placeholder="Ejemplo: E01, Especialista Geotecnia, Experto 1"
     )
 
-    if st.button("Iniciar evaluación"):
-        if experto_input.strip():
-            st.session_state["experto"] = experto_input.strip()
-            st.session_state["paso"] = 1
-            st.rerun()
+    if experto_input.strip():
+
+        experto_normalizado = experto_input.strip()
+
+        estado_respuestas = experto_tiene_respuestas(experto_normalizado)
+
+        if estado_respuestas["alguna"]:
+
+            st.warning(
+                "Este experto ya registra respuestas anteriores en la plataforma. "
+                "Si continúa, se eliminarán sus respuestas anteriores y serán reemplazadas por las nuevas."
+            )
+
+            st.write("Respuestas existentes detectadas:")
+
+            st.write(f"- Encuesta Likert de riesgos: {'Sí' if estado_respuestas['rii'] else 'No'}")
+            st.write(f"- Comparación FAHP de criterios: {'Sí' if estado_respuestas['fahp'] else 'No'}")
+            st.write(f"- Evaluación riesgo-criterio: {'Sí' if estado_respuestas['evaluacion'] else 'No'}")
+
+            confirmar_reemplazo = st.checkbox(
+                "Confirmo que deseo reemplazar mis respuestas anteriores."
+            )
+
+            if st.button("Reemplazar respuestas e iniciar evaluación"):
+                if confirmar_reemplazo:
+                    eliminar_respuestas_experto(experto_normalizado)
+                    st.session_state["experto"] = experto_normalizado
+                    st.session_state["paso"] = 1
+                    st.success("Respuestas anteriores eliminadas. Puede iniciar nuevamente.")
+                    st.rerun()
+                else:
+                    st.error("Debe confirmar que desea reemplazar sus respuestas anteriores.")
+
+            st.stop()
+
         else:
-            st.warning("Debe ingresar un nombre o código para continuar.")
+
+            if st.button("Iniciar evaluación"):
+                st.session_state["experto"] = experto_normalizado
+                st.session_state["paso"] = 1
+                st.rerun()
+
+    else:
+        st.info("Ingrese su nombre o código para iniciar la evaluación.")
 
     st.stop()
 
