@@ -114,10 +114,15 @@ paso = st.session_state["paso"]
 
 st.info(f"Experto actual: {experto}")
 
-progreso = paso / 3
+total_pasos = 4
+progreso = min(paso / total_pasos, 1.0)
+
 st.progress(progreso)
 
-st.write(f"Paso {paso} de 3")
+if paso <= 3:
+    st.write(f"Paso {paso} de 3")
+else:
+    st.write("Evaluación completada")
 
 # ---------------------------------------------------------
 # ETAPA 1: ENCUESTA LIKERT
