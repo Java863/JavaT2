@@ -415,7 +415,7 @@ elif st.session_state["paso"] == 2:
         descripcion = row.get("Descripcion", "")
 
         with st.expander(f"{codigo} - {criterio}"):
-             st.write(f"**Qué mide:** {que_mide}")
+            st.write(f"**Qué mide:** {que_mide}")
             st.write(f"**Descripción:** {descripcion}")
 
     pares = generar_pares_criterios(criterios)
