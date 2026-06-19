@@ -25,6 +25,8 @@ from modules.db import (
     leer_respuestas_fahp,
     guardar_respuestas_evaluacion,
     leer_respuestas_evaluacion,
+    experto_tiene_respuestas,
+    eliminar_respuestas_experto,
 )
 
 
