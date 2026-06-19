@@ -31,6 +31,54 @@ from modules.db import (
     eliminar_respuestas_experto,
 )
 
+def mostrar_tabla_texto_completo(df):
+    html = df.to_html(index=False, escape=False)
+
+    st.markdown(
+        f"""
+        <style>
+        .tabla-texto-completo table {{
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }}
+
+        .tabla-texto-completo th {{
+            background-color: #1f222a;
+            color: #ffffff;
+            padding: 10px;
+            border: 1px solid #3a3d45;
+            text-align: left;
+            font-weight: bold;
+        }}
+
+        .tabla-texto-completo td {{
+            padding: 10px;
+            border: 1px solid #3a3d45;
+            vertical-align: top;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }}
+
+        .tabla-texto-completo tr:nth-child(even) {{
+            background-color: #111827;
+        }}
+
+        .tabla-texto-completo tr:nth-child(odd) {{
+            background-color: #0f141c;
+        }}
+        </style>
+
+        <div class="tabla-texto-completo">
+            {html}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+
 def mostrar_ranking_global():
     st.header("Ranking global actual de riesgos críticos")
 
@@ -345,14 +393,7 @@ if st.session_state["paso"] == 1:
     riesgos = pd.read_csv("data/riesgos_filtrados.csv")
 
     st.subheader("Riesgos a evaluar")
-
-    for _, row in riesgos.iterrows():
-        codigo = row["Codigo"]
-        riesgo = row["Riesgo"]
-        descripcion = row.get("Descripcion", "")
-
-        with st.expander(f"{codigo} - {riesgo}"):
-                st.write(descripcion)
+    mostrar_tabla_texto_completo(riesgos)
 
     escala = ["Muy baja", "Baja", "Media", "Alta", "Muy alta"]
 
@@ -408,15 +449,7 @@ elif st.session_state["paso"] == 2:
 
     st.subheader("Criterios de evaluación")
 
-    for _, row in criterios.iterrows():
-        codigo = row["Codigo"]
-        criterio = row["Criterio"]
-        que_mide = row.get("Que_mide", "")
-        descripcion = row.get("Descripcion", "")
-
-        with st.expander(f"{codigo} - {criterio}"):
-            st.write(f"**Qué mide:** {que_mide}")
-            st.write(f"**Descripción:** {descripcion}")
+    mostrar_tabla_texto_completo(criterios)
 
     pares = generar_pares_criterios(criterios)
 
