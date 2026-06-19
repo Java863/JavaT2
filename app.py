@@ -671,7 +671,7 @@ elif st.session_state["paso"] == 4:
         "las tres encuestas."
     )
     if st.button("Volver al inicio"):
-    st.session_state["modo"] = ""
-    st.session_state["experto"] = ""
-    st.session_state["paso"] = 1
-    st.rerun()
+        st.session_state["modo"] = ""
+        st.session_state["experto"] = ""
+        st.session_state["paso"] = 1
+        st.rerun()
