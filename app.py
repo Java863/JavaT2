@@ -345,7 +345,14 @@ if st.session_state["paso"] == 1:
     riesgos = pd.read_csv("data/riesgos_filtrados.csv")
 
     st.subheader("Riesgos a evaluar")
-    st.dataframe(riesgos, width="stretch")
+
+    for _, row in riesgos.iterrows():
+        codigo = row["Codigo"]
+        riesgo = row["Riesgo"]
+        descripcion = row.get("Descripcion", "")
+
+        with st.expander(f"{codigo} - {riesgo}"):
+                st.write(descripcion)
 
     escala = ["Muy baja", "Baja", "Media", "Alta", "Muy alta"]
 
@@ -400,7 +407,16 @@ elif st.session_state["paso"] == 2:
     criterios = pd.read_csv("data/criterios.csv")
 
     st.subheader("Criterios de evaluación")
-    st.dataframe(criterios, width="stretch")
+
+    for _, row in criterios.iterrows():
+        codigo = row["Codigo"]
+        criterio = row["Criterio"]
+        que_mide = row.get("Que_mide", "")
+        descripcion = row.get("Descripcion", "")
+
+        with st.expander(f"{codigo} - {criterio}"):
+             st.write(f"**Qué mide:** {que_mide}")
+            st.write(f"**Descripción:** {descripcion}")
 
     pares = generar_pares_criterios(criterios)
 
