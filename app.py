@@ -474,8 +474,7 @@ elif st.session_state["paso"] == 2:
     criterios = pd.read_csv("data/criterios.csv")
 
     st.subheader("Criterios de evaluación")
-
-    mostrar_tabla_texto_completo(criterios)
+    mostrar_tabla_criterios(criterios)
 
     pares = generar_pares_criterios(criterios)
 
