@@ -140,3 +140,39 @@ def calcular_cr(matriz):
         cr = ci / ri
 
     return lambda_max, ci, cr, ri
+
+
+def detectar_inconsistencias_fuertes(matriz_crisp, criterios: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
+
+    codigos = criterios["Codigo"].tolist()
+    nombres = dict(zip(criterios["Codigo"], criterios["Criterio"]))
+
+    registros = []
+
+    for i, j, k in itertools.combinations(range(len(codigos)), 3):
+        ci, cj, ck = codigos[i], codigos[j], codigos[k]
+
+        aij = matriz_crisp[i, j]
+        ajk = matriz_crisp[j, k]
+        aik = matriz_crisp[i, k]
+
+        if aij <= 0 or ajk <= 0 or aik <= 0:
+            continue
+
+        desviacion = abs(np.log(aij) + np.log(ajk) - np.log(aik))
+
+        registros.append({
+            "Triada": f"{ci} - {cj} - {ck}",
+            "Criterios involucrados": f"{nombres[ci]} | {nombres[cj]} | {nombres[ck]}",
+            "Comparación 1": f"{ci} vs {cj}",
+            "Comparación 2": f"{cj} vs {ck}",
+            "Comparación 3": f"{ci} vs {ck}",
+            "Desviación": desviacion
+        })
+
+    df = pd.DataFrame(registros)
+
+    if df.empty:
+        return df
+
+    return df.sort_values("Desviación", ascending=False).head(top_n)
