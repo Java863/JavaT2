@@ -154,7 +154,7 @@ if not st.session_state["modo"]:
 
 if st.session_state["modo"] == "ranking":
 
-   if st.button("Volver al inicio"):
+    if st.button("Volver al inicio"):
         st.session_state["modo"] = ""
         st.session_state["experto"] = ""
         st.session_state["paso"] = 1
@@ -162,7 +162,6 @@ if st.session_state["modo"] == "ranking":
 
     mostrar_ranking_global()
     st.stop()
-
 
 if not st.session_state["experto"]:
 
