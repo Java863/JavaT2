@@ -45,13 +45,15 @@ def mostrar_tabla_riesgos(df):
         border-collapse: collapse;
         table-layout: fixed;
         font-size: 15px;
+        background-color: #ffffff;
+        color: #111827;
     }}
 
     table.tabla-riesgos th {{
-        background-color: #1f222a;
+        background-color: #1f2937;
         color: #ffffff;
         padding: 10px;
-        border: 1px solid #3a3d45;
+        border: 1px solid #d1d5db;
         text-align: left;
         font-weight: bold;
         white-space: normal;
@@ -59,20 +61,21 @@ def mostrar_tabla_riesgos(df):
 
     table.tabla-riesgos td {{
         padding: 10px;
-        border: 1px solid #3a3d45;
+        border: 1px solid #d1d5db;
         vertical-align: top;
         white-space: normal;
         word-wrap: break-word;
         overflow-wrap: break-word;
         line-height: 1.45;
+        color: #111827;
     }}
 
     table.tabla-riesgos tr:nth-child(even) {{
-        background-color: #111827;
+        background-color: #f9fafb;
     }}
 
     table.tabla-riesgos tr:nth-child(odd) {{
-        background-color: #0f141c;
+        background-color: #ffffff;
     }}
 
     table.tabla-riesgos th:nth-child(1),
@@ -96,7 +99,6 @@ def mostrar_tabla_riesgos(df):
 
     st.html(tabla_html)
 
-
 def mostrar_tabla_criterios(df):
     html = df.to_html(
         index=False,
@@ -111,13 +113,15 @@ def mostrar_tabla_criterios(df):
         border-collapse: collapse;
         table-layout: fixed;
         font-size: 15px;
+        background-color: #ffffff;
+        color: #111827;
     }}
 
     table.tabla-criterios th {{
-        background-color: #1f222a;
+        background-color: #1f2937;
         color: #ffffff;
         padding: 10px;
-        border: 1px solid #3a3d45;
+        border: 1px solid #d1d5db;
         text-align: left;
         font-weight: bold;
         white-space: normal;
@@ -125,20 +129,21 @@ def mostrar_tabla_criterios(df):
 
     table.tabla-criterios td {{
         padding: 10px;
-        border: 1px solid #3a3d45;
+        border: 1px solid #d1d5db;
         vertical-align: top;
         white-space: normal;
         word-wrap: break-word;
         overflow-wrap: break-word;
         line-height: 1.45;
+        color: #111827;
     }}
 
     table.tabla-criterios tr:nth-child(even) {{
-        background-color: #111827;
+        background-color: #f9fafb;
     }}
 
     table.tabla-criterios tr:nth-child(odd) {{
-        background-color: #0f141c;
+        background-color: #ffffff;
     }}
 
     table.tabla-criterios th:nth-child(1),
