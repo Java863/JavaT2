@@ -1,4 +1,5 @@
 from modules.rii import convertir_likert, calcular_rii_desde_respuestas
+from modules.sensibilidad import preparar_base_sensibilidad
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -280,7 +281,10 @@ def mostrar_ranking_global():
         file_name="ranking_global_riesgos_criticos.csv",
         mime="text/csv"
     )
+    st.divider()
 
+    with st.expander("Ver base para análisis de sensibilidad"):
+        mostrar_base_sensibilidad()
 
 def graficar_ranking_riesgos(ranking_df):
     df = ranking_df.copy()
@@ -331,6 +335,76 @@ def graficar_ranking_riesgos(ranking_df):
     )
 
     return fig
+
+def mostrar_base_sensibilidad():
+    st.header("Base para análisis de sensibilidad")
+
+    st.write(
+        "Esta sección verifica los datos que se utilizarán para construir las gráficas "
+        "de sensibilidad del ranking de riesgos críticos."
+    )
+
+    # 1. Leer respuestas globales desde Supabase
+    respuestas_eval_global = leer_respuestas_evaluacion()
+
+    if respuestas_eval_global.empty:
+        st.warning("Todavía no hay evaluaciones riesgo-criterio registradas.")
+        return
+
+    # 2. Leer respuestas FAHP globales desde Supabase
+    criterios = pd.read_csv("data/criterios.csv")
+    respuestas_fahp_global = leer_respuestas_fahp()
+
+    if respuestas_fahp_global.empty:
+        st.warning("Todavía no hay respuestas FAHP registradas.")
+        return
+
+    # 3. Calcular pesos globales FAHP
+    df_pesos_globales, matriz_texto_global, matriz_crisp_global, lambda_max, ci, cr, ri = (
+        calcular_pesos_globales_fahp(
+            criterios=criterios,
+            respuestas_fahp=respuestas_fahp_global
+        )
+    )
+
+    # 4. Preparar base de sensibilidad
+    top_riesgos, matriz_riesgo_criterio, pesos_base, error = preparar_base_sensibilidad(
+        respuestas_evaluacion=respuestas_eval_global,
+        pesos_criterios=df_pesos_globales,
+        top_n=5
+    )
+
+    if error:
+        st.error(error)
+        return
+
+    st.subheader("Top 5 riesgos considerados en el análisis")
+    st.dataframe(top_riesgos, width="stretch")
+
+    st.subheader("Matriz riesgo-criterio promedio")
+    st.write(
+        "Filas: riesgos críticos. Columnas: criterios. Valores: evaluación promedio defuzzificada."
+    )
+    st.dataframe(matriz_riesgo_criterio, width="stretch")
+
+    st.subheader("Pesos base de criterios")
+    st.dataframe(pesos_base, width="stretch")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
