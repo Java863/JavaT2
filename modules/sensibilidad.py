@@ -233,12 +233,12 @@ def graficar_sensibilidad_por_criterio(df_escenario: pd.DataFrame):
     # Texto vertical de escenario base
     fig.add_annotation(
         x=peso_base,
-        y=y_max,
+        y=y_min,
         text="Escenario base",
         showarrow=False,
         textangle=-90,
-        xanchor="left",
-        yanchor="top",
+        xanchor="right",
+        yanchor="bottom",
         font=dict(size=11, color="black"),
         bgcolor="rgba(255,255,255,0.6)"
     )
