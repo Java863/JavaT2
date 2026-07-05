@@ -202,9 +202,6 @@ def graficar_sensibilidad_por_criterio(df_escenario: pd.DataFrame):
         markers=True,
         title=titulo
     )
-    aca
-    aca
-    aca
     
     peso_base = df["peso_base_pct"].iloc[0]
 
