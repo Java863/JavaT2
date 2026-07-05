@@ -1,5 +1,9 @@
 from modules.rii import convertir_likert, calcular_rii_desde_respuestas
-from modules.sensibilidad import preparar_base_sensibilidad
+from modules.sensibilidad import (
+    preparar_base_sensibilidad,
+    generar_escenarios_sensibilidad,
+    graficar_sensibilidad_por_criterio
+)
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -282,9 +286,8 @@ def mostrar_ranking_global():
         mime="text/csv"
     )
     st.divider()
+    mostrar_graficas_sensibilidad()
 
-    with st.expander("Ver base para análisis de sensibilidad"):
-        mostrar_base_sensibilidad()
 
 def graficar_ranking_riesgos(ranking_df):
     df = ranking_df.copy()
@@ -391,7 +394,69 @@ def mostrar_base_sensibilidad():
     st.dataframe(pesos_base, width="stretch")
 
 
+def mostrar_graficas_sensibilidad():
+    st.header("Análisis de sensibilidad")
 
+    st.write(
+        "Se muestra cómo cambia el puntaje de los 5 riesgos críticos "
+        "cuando el peso de cada criterio varía de 0% a 100%."
+    )
+
+    # Leer respuestas globales
+    respuestas_eval_global = leer_respuestas_evaluacion()
+
+    if respuestas_eval_global.empty:
+        st.warning("Todavía no hay evaluaciones riesgo-criterio registradas.")
+        return
+
+    criterios = pd.read_csv("data/criterios.csv")
+    respuestas_fahp_global = leer_respuestas_fahp()
+
+    if respuestas_fahp_global.empty:
+        st.warning("Todavía no hay respuestas FAHP registradas.")
+        return
+
+    # Pesos globales FAHP
+    df_pesos_globales, matriz_texto_global, matriz_crisp_global, lambda_max, ci, cr, ri = (
+        calcular_pesos_globales_fahp(
+            criterios=criterios,
+            respuestas_fahp=respuestas_fahp_global
+        )
+    )
+
+    # Base de sensibilidad
+    top_riesgos, matriz_riesgo_criterio, pesos_base, error = preparar_base_sensibilidad(
+        respuestas_evaluacion=respuestas_eval_global,
+        pesos_criterios=df_pesos_globales,
+        top_n=5
+    )
+
+    if error:
+        st.error(error)
+        return
+
+    # Escenarios
+    escenarios = generar_escenarios_sensibilidad(
+        matriz_riesgo_criterio=matriz_riesgo_criterio,
+        pesos_base=pesos_base,
+        pasos=11
+    )
+
+    st.subheader("Gráficas de sensibilidad")
+
+    criterios_orden = pesos_base["codigo_criterio"].tolist()
+
+    for i in range(0, len(criterios_orden), 2):
+        col1, col2 = st.columns(2)
+
+        criterio_1 = criterios_orden[i]
+        fig1 = graficar_sensibilidad_por_criterio(escenarios[criterio_1])
+        col1.plotly_chart(fig1, use_container_width=True)
+
+        if i + 1 < len(criterios_orden):
+            criterio_2 = criterios_orden[i + 1]
+            fig2 = graficar_sensibilidad_por_criterio(escenarios[criterio_2])
+            col2.plotly_chart(fig2, use_container_width=True)
 
 
 
