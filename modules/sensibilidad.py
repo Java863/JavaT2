@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import textwrap
+
 
 def preparar_base_sensibilidad(
     respuestas_evaluacion: pd.DataFrame,
@@ -181,18 +183,35 @@ def graficar_sensibilidad_por_criterio(df_escenario: pd.DataFrame):
 
     df = df_escenario.copy()
 
-    def resumir_texto(texto, max_len=55):
+    def envolver_texto(texto, ancho=38):
         texto = str(texto)
-        if len(texto) <= max_len:
-            return texto
-        return texto[:max_len] + "..."
+        return "<br>".join(textwrap.wrap(texto, width=ancho))
 
+    criterio_nombre = df["criterio_nombre"].iloc[0]
+    peso_base = df["peso_base_pct"].iloc[0]
+
+    # Etiquetas completas, pero partidas en varias líneas
     df["etiqueta_riesgo"] = df.apply(
-        lambda x: f"{x['codigo_riesgo']} - {resumir_texto(x['riesgo'])}",
+        lambda x: f"{x['codigo_riesgo']} - {envolver_texto(x['riesgo'], ancho=42)}",
         axis=1
     )
 
-    titulo = f"Peso de {df['criterio_nombre'].iloc[0]}"
+    # -------- Ajuste dinámico del eje Y --------
+    y_min_real = df["score_pct"].min()
+    y_max_real = df["score_pct"].max()
+
+    # Redondear hacia abajo y arriba en bloques de 10
+    y_min = max(0, np.floor((y_min_real - 5) / 10) * 10)
+    y_max = min(100, np.ceil((y_max_real + 2) / 10) * 10)
+
+    # Evitar que el rango salga demasiado corto
+    if (y_max - y_min) < 20:
+        y_min = max(0, y_min - 10)
+
+    # Ticks del eje Y cada 10
+    y_ticks = list(np.arange(y_min, y_max + 1, 10))
+
+    titulo = f"Peso de {criterio_nombre}"
 
     fig = px.line(
         df,
@@ -202,23 +221,56 @@ def graficar_sensibilidad_por_criterio(df_escenario: pd.DataFrame):
         markers=True,
         title=titulo
     )
-    
-    peso_base = df["peso_base_pct"].iloc[0]
 
+    # Línea vertical del escenario base
     fig.add_vline(
         x=peso_base,
         line_width=2,
         line_dash="dash",
-        line_color="black",
-        annotation_text="Escenario base",
-        annotation_position="top left"
+        line_color="black"
     )
-    
+
+    # Texto vertical de escenario base
+    fig.add_annotation(
+        x=peso_base,
+        y=y_max,
+        text="Escenario base",
+        showarrow=False,
+        textangle=-90,
+        xanchor="left",
+        yanchor="top",
+        font=dict(size=11, color="black"),
+        bgcolor="rgba(255,255,255,0.6)"
+    )
+
+    fig.update_traces(
+        line=dict(width=2),
+        marker=dict(size=7),
+        hovertemplate=(
+            "<b>%{fullData.name}</b><br>"
+            f"Peso de {criterio_nombre}: " + "%{x}%<br>"
+            "Puntaje del riesgo: %{y:.2f}%<extra></extra>"
+        )
+    )
+
     fig.update_layout(
-        xaxis_title="Peso del criterio (%)",
+        title=dict(
+            text=titulo,
+            x=0.02
+        ),
+        xaxis_title=f"Peso de {criterio_nombre} (%)",
         yaxis_title="Puntaje del riesgo (%)",
-        legend_title="Riesgos",
-        height=450,
+        height=500,
+        margin=dict(l=70, r=280, t=70, b=70),
+        legend=dict(
+            title="Riesgos",
+            orientation="v",
+            x=1.02,
+            y=1.0,
+            xanchor="left",
+            yanchor="top",
+            font=dict(size=11)
+        ),
         xaxis=dict(
             range=[0, 100],
             tickmode="array",
@@ -226,18 +278,10 @@ def graficar_sensibilidad_por_criterio(df_escenario: pd.DataFrame):
             ticktext=["0%", "20%", "40%", "60%", "80%", "100%"]
         ),
         yaxis=dict(
-            range=[0, 105],
+            range=[y_min, y_max],
             tickmode="array",
-            tickvals=[0, 20, 40, 60, 80, 100],
-            ticktext=["0%", "20%", "40%", "60%", "80%", "100%"]
-        )
-    )
-    
-    fig.update_traces(
-        hovertemplate=(
-            "<b>%{fullData.name}</b><br>"
-            "Peso del criterio: %{x}%<br>"
-            "Puntaje: %{y:.2f}%<extra></extra>"
+            tickvals=y_ticks,
+            ticktext=[f"{int(v)}%" for v in y_ticks]
         )
     )
 
