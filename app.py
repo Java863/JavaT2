@@ -14,6 +14,8 @@ from modules.evaluacion import (
     calcular_criticidad,
 )
 
+from modules.reporte_ia import generar_reporte_decisiones_gemini
+
 from modules.fahp import (
     generar_pares_criterios,
     obtener_tfn,
@@ -287,7 +289,8 @@ def mostrar_ranking_global():
     )
     st.divider()
     mostrar_graficas_sensibilidad()
-
+    st.divider()
+    mostrar_reporte_ia_decisiones()
 
 def graficar_ranking_riesgos(ranking_df):
     df = ranking_df.copy()
@@ -460,6 +463,123 @@ def mostrar_graficas_sensibilidad():
 
 
 
+
+def construir_resumen_sensibilidad(escenarios):
+    """
+    Construye un resumen textual simple del análisis de sensibilidad
+    para enviarlo a Gemini.
+
+    No reemplaza las gráficas.
+    Solo convierte los resultados en texto estructurado.
+    """
+
+    resumen = []
+
+    for criterio_codigo, df_esc in escenarios.items():
+        criterio_nombre = df_esc["criterio_nombre"].iloc[0]
+
+        # Riesgo líder por cada escenario de peso
+        lideres = (
+            df_esc.loc[df_esc.groupby("peso_pct")["score_pct"].idxmax()]
+            [["peso_pct", "codigo_riesgo", "riesgo", "score_pct"]]
+            .sort_values("peso_pct")
+        )
+
+        riesgos_lideres = lideres["codigo_riesgo"].unique().tolist()
+
+        if len(riesgos_lideres) == 1:
+            interpretacion = (
+                f"Para el criterio {criterio_codigo} - {criterio_nombre}, "
+                f"el riesgo {riesgos_lideres[0]} se mantiene como el más crítico "
+                f"en todos los escenarios evaluados."
+            )
+        else:
+            cambios = ", ".join(riesgos_lideres)
+            interpretacion = (
+                f"Para el criterio {criterio_codigo} - {criterio_nombre}, "
+                f"el liderazgo cambia entre los riesgos: {cambios}. "
+                f"Esto indica que el ranking es sensible a variaciones en este criterio."
+            )
+
+        resumen.append(interpretacion)
+
+    return "\n".join(resumen)
+
+
+def mostrar_reporte_ia_decisiones():
+    st.header("Reporte ejecutivo de apoyo a la toma de decisiones")
+
+    st.write(
+        "Este reporte interpreta el ranking global de riesgos críticos y el análisis "
+        "de sensibilidad. La IA no recalcula resultados ni modifica el ranking; "
+        "solo redacta una interpretación ejecutiva a partir de los datos del modelo."
+    )
+
+    # 1. Leer respuestas desde Supabase
+    respuestas_eval_global = leer_respuestas_evaluacion()
+
+    if respuestas_eval_global.empty:
+        st.warning("Todavía no hay evaluaciones riesgo-criterio registradas.")
+        return
+
+    criterios = pd.read_csv("data/criterios.csv")
+    respuestas_fahp_global = leer_respuestas_fahp()
+
+    if respuestas_fahp_global.empty:
+        st.warning("Todavía no hay respuestas FAHP registradas.")
+        return
+
+    # 2. Calcular pesos globales FAHP
+    df_pesos_globales, matriz_texto_global, matriz_crisp_global, lambda_max, ci, cr, ri = (
+        calcular_pesos_globales_fahp(
+            criterios=criterios,
+            respuestas_fahp=respuestas_fahp_global
+        )
+    )
+
+    # 3. Preparar base de sensibilidad
+    top_riesgos, matriz_riesgo_criterio, pesos_base, error = preparar_base_sensibilidad(
+        respuestas_evaluacion=respuestas_eval_global,
+        pesos_criterios=df_pesos_globales,
+        top_n=5
+    )
+
+    if error:
+        st.error(error)
+        return
+
+    # 4. Generar escenarios de sensibilidad
+    escenarios = generar_escenarios_sensibilidad(
+        matriz_riesgo_criterio=matriz_riesgo_criterio,
+        pesos_base=pesos_base,
+        pasos=11
+    )
+
+    # 5. Construir resumen textual de sensibilidad
+    resumen_sensibilidad = construir_resumen_sensibilidad(escenarios)
+
+    # 6. Preparar tablas limpias para Gemini
+    ranking_para_ia = top_riesgos.copy()
+    ranking_para_ia["puntaje_criticidad"] = ranking_para_ia["puntaje_criticidad"].round(4)
+
+    pesos_para_ia = pesos_base.copy()
+    pesos_para_ia["peso"] = pesos_para_ia["peso"].round(4)
+
+    # 7. Botón para generar reporte
+    if st.button("Generar reporte ejecutivo con IA"):
+        with st.spinner("Generando reporte ejecutivo con Gemini..."):
+            reporte = generar_reporte_decisiones_gemini(
+                ranking_global=ranking_para_ia,
+                pesos_criterios=pesos_para_ia,
+                resumen_sensibilidad=resumen_sensibilidad
+            )
+
+        st.session_state["reporte_ia"] = reporte
+
+    # 8. Mostrar reporte si ya fue generado
+    if "reporte_ia" in st.session_state:
+        st.subheader("Reporte generado")
+        st.markdown(st.session_state["reporte_ia"])
 
 
 
