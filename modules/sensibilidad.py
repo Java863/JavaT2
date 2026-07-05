@@ -155,6 +155,7 @@ def generar_escenarios_sensibilidad(
                     "criterio_focal": criterio_focal,
                     "criterio_nombre": nombres_criterios[criterio_focal],
                     "peso_pct": round(peso_focal * 100, 0),
+                    "peso_base_pct": pesos_dict[criterio_focal] * 100,
                     "codigo_riesgo": row["codigo_riesgo"],
                     "riesgo": row["riesgo"],
                     "puntaje": puntaje
@@ -201,14 +202,40 @@ def graficar_sensibilidad_por_criterio(df_escenario: pd.DataFrame):
         markers=True,
         title=titulo
     )
+    aca
+    aca
+    aca
+    
+    peso_base = df["peso_base_pct"].iloc[0]
 
+    fig.add_vline(
+        x=peso_base,
+        line_width=2,
+        line_dash="dash",
+        line_color="black",
+        annotation_text="Escenario base",
+        annotation_position="top left"
+    )
+    
     fig.update_layout(
         xaxis_title="Peso del criterio (%)",
         yaxis_title="Puntaje del riesgo (%)",
         legend_title="Riesgos",
-        height=450
+        height=450,
+        xaxis=dict(
+            range=[0, 100],
+            tickmode="array",
+            tickvals=[0, 20, 40, 60, 80, 100],
+            ticktext=["0%", "20%", "40%", "60%", "80%", "100%"]
+        ),
+        yaxis=dict(
+            range=[0, 105],
+            tickmode="array",
+            tickvals=[0, 20, 40, 60, 80, 100],
+            ticktext=["0%", "20%", "40%", "60%", "80%", "100%"]
+        )
     )
-
+    
     fig.update_traces(
         hovertemplate=(
             "<b>%{fullData.name}</b><br>"
